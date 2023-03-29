@@ -412,7 +412,7 @@ def run_CEDA_regional_means():
                     % (path_in, yr, mn)
                 )
                 # stop if more than one file founds by glob.glob
-                if len(file_in) != 0:
+                if len(file_in) != 1:
                     print("incorrect number of files found, stopping")
                     print(file_in)
                     pdb.set_trace()
@@ -608,7 +608,7 @@ def run_CEDA_monthly():
                         % (path_in, yr, mn, grid_val)
                     )
 
-                    if len(tmp_file_in) != 0:
+                    if len(tmp_file_in) != 1:
                         print("incorrect number of files found, stopping")
                         print(tmp_file_in)
                         pdb.set_trace()
@@ -852,8 +852,6 @@ def run_CEDA_monthly():
 
 def run_CEDA_ens_climatologies(
     skip_existing=False,
-    Test=False,
-    Testvar=None,
     yrmat_1=np.arange(2000, 2019 + 1),
     yrmat_2=np.arange(2079, 2098 + 1),
 ):
@@ -969,8 +967,6 @@ def run_CEDA_ens_climatologies(
                             return
 
                     time_bnd = {}
-                    if Test:
-                        test_lst = []
 
                     # year within climatological period
                     # e.g. for presnet day annual means,  cycling through years, 2000,2001,2002, 2003...
@@ -1061,8 +1057,6 @@ def run_CEDA_ens_climatologies(
                         int_var_ave_mat = {}
                         for tmp_key in tmp_key_mat:
                             int_var_ave_mat[tmp_key] = int_var_mat[tmp_key][:] / int_cnt
-                        if Test:
-                            test_lst.append(int_var_ave_mat[Testvar][0, 120, 120])
 
                         # if the first year, take a copy, and a copy of the square
                         if yi == 0:
@@ -1083,17 +1077,6 @@ def run_CEDA_ens_climatologies(
                                     int_var_ave_mat[tmp_key][:] ** 2
                                 )
                             tot_cnt += 1
-
-                    if Test:
-                        for tmp_key in tmp_key_mat:
-                            tmp_mean = var_mat[Testvar][:] / tot_cnt
-                            tmp_std = np.sqrt(
-                                var_mat_stdev[Testvar][:] / tot_cnt - tmp_mean**2
-                            )
-                            print(tmp_mean[0, 120, 120], np.array(test_lst).mean())
-                            print(tmp_std[0, 120, 120], np.array(test_lst).std())
-
-                            pdb.set_trace()
 
                     # create mean and standard deviation files at the same time
                     for tmp_fill_fname in [tmpfname_clim, tmpfname_clim_stdev]:
@@ -1268,8 +1251,6 @@ def run_CEDA_ens_climatologies(
 
 
 def run_CEDA_ens_stats(
-    Test=False,
-    Testvar=None,
     yrmat_1=np.arange(2000, 2019 + 1),
     yrmat_2=np.arange(2079, 2098 + 1),
 ):
@@ -1366,10 +1347,6 @@ def run_CEDA_ens_stats(
                 proc_dat[seas][var] = {}
                 proj_dat[seas][var] = {}
 
-            if Test:
-                Test_mean = {}
-                Test_std = {}
-
         # loop through date types (months, seasons, annuals)
         #   open files for present day, and future climatologies (means and std devs)
         #   sum and sum squares of the variables.
@@ -1377,10 +1354,6 @@ def run_CEDA_ens_stats(
 
             # counter for looping over ensemble members
             proc_cnt = 0
-
-            if Test:
-                Test_mean[seas] = np.ma.zeros(12)
-                Test_std[seas] = np.ma.zeros(12)
 
             print(
                 datetime.now(),
@@ -1548,10 +1521,6 @@ def run_CEDA_ens_stats(
                 # increment ensemble counter
                 proc_cnt += 1
 
-                if Test:
-                    Test_mean[seas][ei] = var_clim_1[Testvar][0, 120, 120]
-                    Test_std[seas][ei] = var_clim_stdev_1[Testvar][0, 120, 120]
-
                 # close input files
                 rootgrp_clim_1.close()
                 rootgrp_clim_stdev_1.close()
@@ -1599,15 +1568,6 @@ def run_CEDA_ens_stats(
                     proj_dat[seas][var]["%s_ensstd" % pername] = np.sqrt(
                         proj_dat[seas][var]["%s_ensvar" % pername]
                     )
-
-        if Test:
-            pdb.set_trace()
-            Test_mean["dec"].mean(), proj_dat["dec"][Testvar]["pres_ensmean"][120, 120]
-
-            Test_mean["dec"].var(), proj_dat["dec"][Testvar]["pres_ensvar"][120, 120]
-            ((Test_std["dec"]) ** 2).mean(), proj_dat["dec"][Testvar]["pres_intvar"][
-                120, 120
-            ]
 
         # Write output files.
         # loop through seasons, and then pres, fut and diff.
@@ -1749,10 +1709,10 @@ def run_CEDA_ens_stats(
 
 def main():
 
+    run_CEDA_regional_means()
     run_CEDA_monthly()
     run_CEDA_ens_climatologies()
     run_CEDA_ens_stats()
-    run_CEDA_regional_means()
 
     pdb.set_trace()
 

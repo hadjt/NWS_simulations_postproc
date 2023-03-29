@@ -10,4 +10,4 @@ rootgrp = Dataset(mask_file, "r", format="NETCDF4")
 reg_mask_mat = rootgrp.variables["mask"][2, :, :]
 rootgrp.close()
 
-NWSPPE_output_dir = "/project/shelf_sea_projection/HCCP_UKCP_PPE/proc_files/CEDA_black_flake8/"
+NWSPPE_output_dir = "/project/shelf_sea_projection/HCCP_UKCP_PPE/proc_files/CEDA_github/"
