@@ -115,20 +115,13 @@ ens_stat_units_format_dict["_intvar"] = "(%s)^2"
 ens_stat_units_format_dict["_ensstd"] = "%s"
 
 var_dict = {}
-var_dict["T"] = ["SST", "NBT", "DFT", "SSS", "NBS", "DFS", "SSH", "MLD", "PEA","DMUV"]
+var_dict["T"] = [
+    "SST", "NBT", "DFT", "SSS", "NBS",
+    "DFS", "SSH", "MLD", "PEA","DMUV"
+    ]
 var_dict["U"] = ["DMU"]
 var_dict["V"] = ["DMV"]
 var_dict["R"] = [
-    "RegAveSST",
-    "RegAveNBT",
-    "RegAveDFT",
-    "RegAveSSS",
-    "RegAveNBS",
-    "RegAveDFS",
-    "RegAveSSH",
-    "RegAvePEA",
-]
-
-
-
-
+    "RegAveSST","RegAveNBT","RegAveDFT","RegAveSSS",
+    "RegAveNBS","RegAveDFS","RegAveSSH","RegAvePEA",
+    ]

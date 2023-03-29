@@ -871,7 +871,7 @@ def run_CEDA_ens_climatologies(
     We do not create climatologies for PDCtrl, only NWSPPE.
     The climatological means and standard deviations are in
     different files, and the variable names are unchanged (although the
-    processing and statisitic is recorded in the variable attributes,
+    processing and statistic is recorded in the variable attributes,
     cell_methods). As these files have the same structure, they are created at
     the same time, and closed, and the reopened (with append) to add the data.
 
@@ -1274,12 +1274,55 @@ def run_CEDA_ens_stats(
     yrmat_2=np.arange(2079, 2098 + 1),
 ):
     """
-    Read in the CEDA climatological means and standard deviations, for ensemble member for the NWSPPE,
-    for the near present day period (2000-2019) and end of century period (2079-2098), for the monthly, seasonal and annual means,
-    and calculate ensemble statistics. Ensemble statistics include ensmeble mean,  ensmeble standard deviations,  ensmeble variance and interannual variance,
-    for the present day, end of century, and the difference between them. All statistics are in the same file, with the variable name modified with a suffix to indentify the statistic (and the processing and statistic is recorded in the variable attributes, cell_methods)
+    Read in the CEDA climatological means and standard deviations, for ensemble
+    member for the NWSPPE, for the near present day period (2000-2019) and end
+    of century period (2079-2098), for the monthly, seasonal and annual means,
+    and calculate ensemble statistics. Ensemble statistics include ensemble
+    mean, ensemble standard deviations,  ensemble variance and interannual
+    variance, for the present day, end of century, and the difference between
+    them. All statistics are in the same file, with the variable name
+    modified with a suffix to indentify the statistic (and the processing
+    and statistic is recorded in the variable attributes, cell_methods).
+
+    This may be run outside the MO, it only relies on the processed climatology
+    files which are available on CEDA, or can be created with
+    run_CEDA_ens_climatologies. Re-running it may allow the user to
+    customise the climatological periods.
+
+    We do not create climatologies for PDCtrl, only NWSPPE.
+
+    The ensemble statistics are in the same file, and the variable names are
+    changed, with the statistic name added to the end (the processing of the
+    statistic is recorded in the variable attributes, cell_methods).
+
+    When caluculating the ensemble statistics we, cycle through the ensemble
+    members and increment a sum the variables, and the sum of square of the
+    variables, which is later converted into the various ensemble statistics.
+
+    This code initially cycles through the T, U and V grid. For each grid, it
+    loads in all the data, before processing, and writing it out. As this part
+    of the processing is relatively quick, there is less need to read and write
+    period by period.
+
+    As well as calculating the ensemble statistics for each climatological
+    period, we also calculate the ensemble statistics for the differnce between
+    the climatological period, to give the change signal.
+
+    The code first initialises dictionaries to load the data.
+
+    It then cycles through the date periods (months, seasons and annual means),
+    and then cycles through the ensembles. For each ensemble member, it loads
+    the climatological mean and standard deviation for the near present day and
+    end-of-century period, and also records their difference. For the first
+    ensmeble member, it notes the variables, and the square of the variables,
+    for both the climatological mean and standard deviation.
+
+    After all months, seasons and annual means, and ensemble members are loaded
+    it calculates the ensemble statistic, taking care to work in double
+    precision to avoid negative variances. The output files are then written out.
 
     Jonathan Tinker 29/03/2023
+
     """
 
     print("start: ", datetime.now())
@@ -1332,7 +1375,7 @@ def run_CEDA_ens_stats(
         #   sum and sum squares of the variables.
         for di, seas in enumerate(date_name_mat):
 
-            # counter for looping over ensmeble members
+            # counter for looping over ensemble members
             proc_cnt = 0
 
             if Test:
@@ -1462,7 +1505,7 @@ def run_CEDA_ens_stats(
                             var_clim_2[var][0, :, :].astype("double")
                             - var_clim_1[var][0, :, :].astype("double")
                         ) ** 2
-                        # we need the interannual variance of each ensmeble member, so at this step need to convert from Std Dev by squaring
+                        # we need the interannual variance of each ensemble member, so at this step need to convert from Std Dev by squaring
                         proc_dat[seas][var]["pres_var_sum"] = (
                             var_clim_stdev_1[var][0, :, :].astype("double") ** 2
                         )
@@ -1492,7 +1535,7 @@ def run_CEDA_ens_stats(
                             var_clim_2[var][0, :, :].astype("double")
                             - var_clim_1[var][0, :, :].astype("double")
                         ) ** 2
-                        # we need the interannual variance of each ensmeble member, so at this step need to convert from Std Dev by squaring
+                        # we need the interannual variance of each ensemble member, so at this step need to convert from Std Dev by squaring
                         proc_dat[seas][var]["pres_var_sum"] += (
                             var_clim_stdev_1[var][0, :, :].astype("double") ** 2
                         )

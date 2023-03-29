@@ -3,12 +3,11 @@ import numpy as np
 
 import NWS_simulations_postproc_config as NWS_config
 
-HCCP_path_in_pattern = NWS_config.HCCP_path_in_pattern
+NWSPPE_path_in_pattern = NWS_config.NWSPPE_path_in_pattern
 
 # Standardised Lat/Lon values for output variables
-
 eg_file_lst = [
-    HCCP_path_in_pattern % ("r001i1p00000") + "/19900101_Monthly2D_grid_%s.nc" % ss
+    NWSPPE_path_in_pattern % ("r001i1p00000") + "/19900101_Monthly2D_grid_%s.nc" % ss
     for ss in ["T", "U", "V"]
 ]
 lon_str_lst, lat_str_lst = ["nav_lon", "nav_lon_grid_U", "nav_lon_grid_V"], [
@@ -18,7 +17,6 @@ lon_str_lst, lat_str_lst = ["nav_lon", "nav_lon_grid_U", "nav_lon_grid_V"], [
 ]
 
 lonlat_dict = {}
-#lonlat_fixed_dict = {}
 lonlat_out_nc_dict = {}
 
 for eg_file, lon_str, lat_str, grid_val in zip(

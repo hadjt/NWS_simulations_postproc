@@ -5,13 +5,13 @@
 
 
 
-out_Conventions = "CF-1.8"  # "CF-1.6"
+out_Conventions = "CF-1.8"
 
 out_institution = "Met Office Hadley Centre, Exeter, UK."
 
 out_title = "Marine climate projections for the North West European Shelf Seas.\nA GCM Perturbed Parameter Ensemble and present day control simulation downscaled with a shelf seas model.\n"
 
-out_history = "Model output post processed by NWS_simulations_postproc.py"
+out_history = "Model output post processed by NWS_simulations_postproc.py: https://github.com/hadjt/NWS_simulations_postproc"
 
 out_references = "Tinker et al. 2023, A set of climate projections for the NW European Shelf Seas, in prep."
 
@@ -42,32 +42,3 @@ out_comment_EnsStat = 'These ensemble statistics are calculated from the climato
 
 
 out_variance_separation_references = "Tinker, J., Lowe, J., Pardaens, A., Holt, J., and Barciela, R.: Uncertainty in climate projections for the 21st century northwest European shelf seas, Prog. Oceanogr., 148, 56-73, https://doi.org/10.1016/j.pocean.2016.09.003, 2016."
-
-
-'''
-
-
-
-
-
-
-
-
-out_Conventions 
-out_institution 
-out_title 
-out_history 
-out_references 
-out_comment_monthly_mean 
-out_comment_regmean 
-out_region_names 
-out_region_notes 
-out_region_refererence 
-out_region_methology_reference 
-out_source_PDCtrl 
-out_source_NWSPPE 
-out_comment_grid 
-out_comment_EnsStat 
-out_variance_separation_references
-
-'''
