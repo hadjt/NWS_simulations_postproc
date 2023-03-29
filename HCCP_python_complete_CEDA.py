@@ -248,8 +248,11 @@ out_variance_separation_references = 'Tinker, J., Lowe, J., Pardaens, A., Holt, 
 compress_variables = False
 
 def create_ann_seas_lst(yrmat):
+"""
+Create a list of the months and years that make up annual and seasonal means, for a given list of years
 
-
+Jonathan Tinker 29/03/2023
+"""
     ann_lst = []
     djf_lst = []
     jja_lst = []
@@ -278,8 +281,11 @@ def create_ann_seas_lst(yrmat):
     return ann_lst,djf_lst,mam_lst,jja_lst,son_lst
 
 def create_mon_lst(yrmat):
+"""    
+Create a list of the months and years that for each month, for a given list of years
 
-
+Jonathan Tinker 29/03/2023
+"""
     mon_lst = []
     for mi in range(12):
         tmp_mon_lst = []
@@ -290,8 +296,11 @@ def create_mon_lst(yrmat):
 
 
 def run_CEDA_regional_means():
-    # read in the regional mean files output from NEMO COx and create a single regional mean file for CEDA, with standardised and corrected meta data.
+"""
+Read in the regional mean files output from NEMO COx and create a single regional mean file for CEDA, with standardised and corrected meta data.
 
+Jonathan Tinker 29/03/2023
+"""
     grid_val = 'R'
     mnmat = np.arange(1,12+1)
 
@@ -473,8 +482,11 @@ def run_CEDA_regional_means():
 
 
 def run_CEDA_monthly(file_output_freq_ann = True):
-    # read in the monthly mean files output from NEMO COx and recreate them for CEDA, with standardised and corrected meta data.
+"""
+read in the monthly mean files output from NEMO COx and recreate them for CEDA, with standardised and corrected meta data.
 
+Jonathan Tinker 29/03/2023
+"""
     mnmat = np.arange(1,12+1)
 
     # Create the directory if missing.
@@ -704,6 +716,14 @@ def run_CEDA_monthly(file_output_freq_ann = True):
 
 
 def run_CEDA_ens_climatologies(skip_existing = False, Test = False, Testvar = None, file_output_freq_ann = True):
+"""
+Read in the CEDA reprocessed monthly mean files, and create climatological means and standard deviations, 
+for a near present day period (2000-2019) and a end of century period (2079-2098). This is repeated for all ensemble member for the NWSPPE, 
+and is produced for monthly, seasonal and annual means. The climatologiccal means and standard deviations are in different files, and the variable names are unchanged 
+(although the processing and statisitic is recorded in the variable attributes, cell_methods)
+ 
+Jonathan Tinker 29/03/2023
+"""
 
 
 
@@ -988,6 +1008,14 @@ def run_CEDA_ens_climatologies(skip_existing = False, Test = False, Testvar = No
 
 
 def run_CEDA_ens_stats( Test = False, Testvar = None,yrmat_1 = np.arange(2000,2019+1),yrmat_2 = np.arange(2079,2098+1)):
+"""
+Read in the CEDA climatological means and standard deviations, for ensemble member for the NWSPPE, 
+for the near present day period (2000-2019) and end of century period (2079-2098), for the monthly, seasonal and annual means, 
+and calculate ensemble statistics. Ensemble statistics include ensmeble mean,  ensmeble standard deviations,  ensmeble variance and interannual variance, 
+for the present day, end of century, and the difference between them. All statistics are in the same file, with the variable name modified with a suffix to indentify the statistic (and the processing and statistic is recorded in the variable attributes, cell_methods)
+
+Jonathan Tinker 29/03/2023
+"""
 
     print ('start: ',datetime.now())
 
