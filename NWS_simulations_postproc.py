@@ -1,11 +1,10 @@
 # -*- coding: utf-8 -*-
-from netCDF4 import Dataset
-import pdb
-import numpy as np
-from datetime import datetime
 import os
 import glob
-
+import pdb
+from netCDF4 import Dataset
+import numpy as np
+from datetime import datetime
 
 # Include file with NWS configuration info
 import NWS_simulations_postproc_config as NWS_config
@@ -26,15 +25,11 @@ warnings.filterwarnings("ignore")
 # Use info from NWS configuration info
 
 PDCtrl_path_in = NWS_config.PDCtrl_path_in
-HCCP_path_in_pattern = NWS_config.HCCP_path_in_pattern
+NWSPPE_path_in_pattern = NWS_config.NWSPPE_path_in_pattern
 reg_mask_mat = NWS_config.reg_mask_mat
-HCCP_output_dir = NWS_config.HCCP_output_dir
+NWSPPE_output_dir = NWS_config.NWSPPE_output_dir
 
-if not os.path.exists(HCCP_output_dir):
-    os.makedirs(HCCP_output_dir)
-
-
-#  Use info from NWS dictionaries
+# Use info from NWS dictionaries
 
 long_name_dict = NWS_dict.long_name_dict
 standard_name_dict = NWS_dict.standard_name_dict
@@ -45,8 +40,7 @@ ens_stat_cell_methods_dict = NWS_dict.ens_stat_cell_methods_dict
 ens_stat_units_format_dict = NWS_dict.ens_stat_units_format_dict
 var_dict = NWS_dict.var_dict
 
-
-#  Use info from NWS global attributes
+# Use info from NWS global attributes
 
 out_Conventions = NWS_globattrib.out_Conventions
 out_institution = NWS_globattrib.out_institution
@@ -65,122 +59,167 @@ out_comment_grid = NWS_globattrib.out_comment_grid
 out_comment_EnsStat = NWS_globattrib.out_comment_EnsStat
 out_variance_separation_references = NWS_globattrib.out_variance_separation_references
 
-
-#  Use info from NWS standardised lon lat
+# Use info from NWS standardised lon lat
 
 lonlat_out_nc_dict = NWS_lon_lat.lonlat_out_nc_dict
 
+# Create root dir if doesn't exist
+
+if not os.path.exists(NWSPPE_output_dir):
+    os.makedirs(NWSPPE_output_dir)
+
+# List of grids, ensemble members, months
+
 grid_list = ["T", "U", "V"]
 
+NWSPPE_ens_mat_12 = [
+    "r001i1p00000", "r001i1p00605", "r001i1p00834",
+    "r001i1p01113", "r001i1p01554", "r001i1p01649",
+    "r001i1p01843", "r001i1p01935", "r001i1p02123",
+    "r001i1p02242", "r001i1p02491", "r001i1p02868",
+]
+
+monstr = [
+    "Jan", "Feb", "Mar",
+    "Apr", "May", "Jun",
+    "Jul", "Aug", "Sep",
+    "Oct", "Nov", "Dec",
+]
+
+monmxx = [
+    "m01", "m02", "m03",
+    "m04", "m05", "m06",
+    "m07", "m08", "m09",
+    "m10", "m11", "m12",
+]
+
+mnmat = np.arange(1, 12 + 1)
+
+# Dimension names
 reg_dim = "region"
 lat_dim = "lat"
 lon_dim = "lon"
 time_dim = "time"
 bnd_dim = "bnds"
 
-
-HCCP_ens_mat_12 = [
-    "r001i1p00000",
-    "r001i1p00605",
-    "r001i1p00834",
-    "r001i1p01113",
-    "r001i1p01554",
-    "r001i1p01649",
-    "r001i1p01843",
-    "r001i1p01935",
-    "r001i1p02123",
-    "r001i1p02242",
-    "r001i1p02491",
-    "r001i1p02868",
-]  #
-
-monstr = [
-    "Jan",
-    "Feb",
-    "Mar",
-    "Apr",
-    "May",
-    "Jun",
-    "Jul",
-    "Aug",
-    "Sep",
-    "Oct",
-    "Nov",
-    "Dec",
-]
-monmxx = [
-    "m01",
-    "m02",
-    "m03",
-    "m04",
-    "m05",
-    "m06",
-    "m07",
-    "m08",
-    "m09",
-    "m10",
-    "m11",
-    "m12",
-]
-
-
-# compress variables? smaller, but file size varies, so spot incomplete files
+# compress variables? smaller, but file size varies, so harder to
+# spot incomplete files
 compress_variables = False
 
 
 def create_ann_seas_lst(yrmat):
     """
-    Create a list of the months and years that make up annual and seasonal means, for a given list of years
+    When we are creating seasonal or annual mean climatologies for a given
+    period (i.e. 2000-2019, if yrmat = np.arange(2000,2019+1)), we need to
+    average a number of months into a seasonal or annual mean first. For
+    example, if we're making a spring climatology for 2000-2019, we first
+    need to average March, April and May for 2000 into spring 2000, and then
+    March, April and May for 2001 into spring 2001.
+
+    This function give a list of years and months that need to be averaged
+    within the climatological period (yrmat).
+
+    create_ann_seas_lst returns a list with 5 elements (for annual, winter,
+    spring, summer and autumn means), with each element being another list of
+    the year and months (in the string format YYYYMM) needed for the averaging.
+
+    For Example:
+
+    ann_lst, djf_lst, mam_lst, jja_lst, son_lst =
+        create_ann_seas_lst(np.arange(2000,2019+1))
+
+    # the months needed to average into springs, between 2000 and 2019
+    mam_lst
+    [['200003', '200004', '200005'], ['200103', '200104', '200105'], ['200203', '200204', '200205'], ['200303', '200304', '200305'], ['200403', '200404', '200405'], ['200503', '200504', '200505'], ['200603', '200604', '200605'], ['200703', '200704', '200705'], ['200803', '200804', '200805'], ['200903', '200904', '200905'], ['201003', '201004', '201005'], ['201103', '201104', '201105'], ['201203', '201204', '201205'], ['201303', '201304', '201305'], ['201403', '201404', '201405'], ['201503', '201504', '201505'], ['201603', '201604', '201605'], ['201703', '201704', '201705'], ['201803', '201804', '201805'], ['201903', '201904', '201905']]
 
     Jonathan Tinker 29/03/2023
     """
+
+    # Predefine lists for annual and the 4 seasonal means
     ann_lst = []
     djf_lst = []
     jja_lst = []
     mam_lst = []
     son_lst = []
+
+    # cycle through the years of the climatological period
     for yr in yrmat:
 
+        # Predefine temporary lists
         tmp_ann_lst = []
         tmp_djf_lst = []
         tmp_jja_lst = []
         tmp_mam_lst = []
         tmp_son_lst = []
+
+        # cycle through and append the year and month in YYYYMM string format
+
+        # cycle through 12 months for annual means
         for mi in range(12):
             tmp_ann_lst.append("%04i%02i" % (yr, mi + 1))
+
+        # cycle through Mar, Apr and May for Spring (MAM)
         for mi in [2, 3, 4]:
             tmp_mam_lst.append("%04i%02i" % (yr, mi + 1))
+
+        # cycle through Jun, Jul and Aug for Summer (JJA)
         for mi in [5, 6, 7]:
             tmp_jja_lst.append("%04i%02i" % (yr, mi + 1))
+
+        # cycle through Sep, Oct and Nov for Autumn (SON)
         for mi in [8, 9, 10]:
             tmp_son_lst.append("%04i%02i" % (yr, mi + 1))
+
+        # For Winter (DJF) append Dec from previous year
         tmp_djf_lst.append("%04i12" % (yr - 1))
+
+        # and then cycle through Jan and Feb
         for mi in [0, 1]:
             tmp_djf_lst.append("%04i%02i" % (yr, mi + 1))
 
+        # Append current year list to main lists
         ann_lst.append(tmp_ann_lst)
         djf_lst.append(tmp_djf_lst)
         mam_lst.append(tmp_mam_lst)
         jja_lst.append(tmp_jja_lst)
         son_lst.append(tmp_son_lst)
 
+    # Return as
     return ann_lst, djf_lst, mam_lst, jja_lst, son_lst
 
 
 def create_mon_lst(yrmat):
     """
-    Create a list of the months and years that for each month, for a given list of years
-    to allow averageing months into seasons or years, before averaging seasons/annual into  climatologies
+    The provides a list with 12 elements (one for each month of year). Each
+    element has a list of years within the climatological period (i.e.
+    2000-2019, if yrmat = np.arange(2000,2019+1)). This is a little redundant,
+    but is consistent with create_ann_seas_lst (see details above), and allows
+    the same code to produce annual, seasonal and monthly climatologies
 
-    e.g. [['202012','2021201','202102'],['202112','2022201','202202']]
+
+    For Example:
+
+    tmp_mon = create_mon_lst(np.arange(2000,2019+1))
+
+    # the years needed for the February climatology for between 2000 and 2019
+    tmp_mon[1]
+    [['200002'], ['200102'], ['200202'], ['200302'], ['200402'], ['200502'], ['200602'], ['200702'], ['200802'], ['200902'], ['201002'], ['201102'], ['201202'], ['201302'], ['201402'], ['201502'], ['201602'], ['201702'], ['201802'], ['201902']]
 
     Jonathan Tinker 29/03/2023
     """
+
+    # Predefine list
     mon_lst = []
+
+    # cycle through months
     for mi in range(12):
+        # Predefine temporary lists
         tmp_mon_lst = []
+        # cycle through the years of the climatological period
+        # append the year and month in YYYYMM string format
         for yr in yrmat:
             tmp_mon_lst.append(["%04i%02i" % (yr, mi + 1)])
+        # Append current year list to main list
         mon_lst.append(tmp_mon_lst)
 
     return mon_lst
@@ -190,35 +229,62 @@ def run_CEDA_regional_means():
     """
     Read in the regional mean files output from NEMO COx and create a single regional mean file for CEDA, with standardised and corrected meta data.
 
+    This is unlikely to be run outside the MO, as the raw NEMO model output
+    will not be made available.
+
+    This code cycles through the PDCtrl and the NWSPPE ensemble members.
+    For each, it
+        opens an output file,
+        adds the dimensions, variables and attributes.
+        It then cycles through the years and months, and takes the data from
+        the shelf region, and the Wakelin et al. region mask, and adds them
+        to the output file.
+
+    NEMO 3.6 and NEMO 4.0.4 (PDCtrl and NWSPPE respectively) both have a
+    different time origin (1950 and 1900 respectively) so this is corrected
+    for.
+    Furthermore, NEMO 3.6 (PDCtrl) had an XIOS bug which meant the time
+    (in seconds since 1950) would overflow with values >2**32. We correct
+    for this.
+
+    There are occasional files that were not archived, and so have been
+    recreated (mostly by averaging daily mean files, see paper for details).
+    This is done externally to this program, using netcdf operators.
+    Files that have been recreated have been given an extension to the file
+    name of the raw NEMO output. To account for this, we use glob.glob with
+    the input file names.
+
     Jonathan Tinker 29/03/2023
     """
+
     grid_val = "R"
-    mnmat = np.arange(1, 12 + 1)
 
     # Create the directory if missing.
-    if not os.path.exists(HCCP_output_dir):
-        os.makedirs(HCCP_output_dir)
+    if not os.path.exists(NWSPPE_output_dir):
+        os.makedirs(NWSPPE_output_dir)
 
     # cycle through the ensemble members
-    for ens in ["PDCtrl"] + HCCP_ens_mat_12:
+    for ens in ["PDCtrl"] + NWSPPE_ens_mat_12:
         print(ens, datetime.now())
 
         # input path and years for NWSPPE and PDCtrl differ.
         if ens == "PDCtrl":
+            yrmat = np.arange(2050, 2250 + 1)
 
             path_in = PDCtrl_path_in
 
-            yrmat = np.arange(2050, 2250 + 1)
             fname_ens = ens
             file_out = "NWSClim_PDCtrl_2050-2250_regmean.nc"
-            path_out = HCCP_output_dir + "NWSClim/%s/regmean/" % ens
-        else:
-            path_in = HCCP_path_in_pattern % (ens)
+            path_out = NWSPPE_output_dir + "NWSClim/%s/regmean/" % ens
 
+        else:
             yrmat = np.arange(1990, 2098 + 1)
+
+            path_in = NWSPPE_path_in_pattern % (ens)
+
             fname_ens = "NWSPPE_%s" % ens
             file_out = "NWSClim_%s_1990-2098_regmean.nc" % fname_ens
-            path_out = HCCP_output_dir + "NWSClim/NWSPPE/%s/regmean/" % ens
+            path_out = NWSPPE_output_dir + "NWSClim/NWSPPE/%s/regmean/" % ens
 
         if not os.path.exists(path_out):
             os.makedirs(path_out)
@@ -243,6 +309,7 @@ def run_CEDA_regional_means():
         time_var.setncattr("time_origin", "1950-01-01 00:00:00")
         time_var.setncattr("bounds", "time_bounds")
 
+        # Create data variables
         tmpvardict = {}
         for var in var_dict[grid_val]:
             tmpvardict[var] = rootgrp_out.createVariable(
@@ -253,11 +320,13 @@ def run_CEDA_regional_means():
                 zlib=compress_variables,
             )
 
+        # Create region id and count variables
         for var in ["reg_id", "cnt"]:
             tmpvardict[var] = rootgrp_out.createVariable(
                 var, "f4", (reg_dim), fill_value=1.0e20, zlib=compress_variables
             )
 
+        # Create mask variables
         for var in ["mask"]:
             tmpvardict[var] = rootgrp_out.createVariable(
                 var,
@@ -267,6 +336,7 @@ def run_CEDA_regional_means():
                 zlib=compress_variables,
             )
 
+        # Add variable attributes
         for var in var_dict[grid_val] + ["reg_id", "cnt"]:
             tmpvardict[var].setncattr("long_name", long_name_dict[var])
             if var in standard_name_dict.keys():
@@ -279,15 +349,15 @@ def run_CEDA_regional_means():
             tmpvardict[var].setncattr("interval_operation", "1 time-step")
             tmpvardict[var].setncattr("cell_methods", "Area: mean time: mean")
 
-        # Add mask
         for var in ["mask"]:
             tmpvardict[var].setncattr("long_name", long_name_dict[var])
             tmpvardict[var].setncattr("units", unit_dict[var])
 
-        # Add lon and lats
+        # Create lon and lats variables
         lon_var = rootgrp_out.createVariable("lon", "f4", (lon_dim))
         lat_var = rootgrp_out.createVariable("lat", "f4", (lat_dim))
 
+        # Add lon and lats attributes
         lon_var.setncattr("long_name", "Longitude")
         lon_var.setncattr("standard_name", "longitude")
         lon_var.setncattr("units", "degrees_east")
@@ -297,9 +367,11 @@ def run_CEDA_regional_means():
         lat_var.setncattr("units", "degrees_north")
         lat_var.setncattr("nav_model", "grid_T")
 
+        # Add lon and lats data
         lon_var[:] = lonlat_out_nc_dict["lon_T"]
         lat_var[:] = lonlat_out_nc_dict["lat_T"]
 
+        # Add mask data
         tmpvardict["mask"][:, :] = reg_mask_mat
 
         # Add Global Attributes
@@ -326,39 +398,50 @@ def run_CEDA_regional_means():
         rootgrp_out.setncattr("references", out_references)
         rootgrp_out.setncattr("comments", out_comment_regmean % tmp_nemo_version)
 
-        # loop throuhg year and month with a counter.
+        # loop through year and month with a counter.
         counter = 0
         for yr in yrmat:
+            # print out date every decade
             if (yr % 10) == 0:
                 print(yr, datetime.now())
             for mn in mnmat:
 
-                # Open files
+                # Open files, with glob to catch recreated files
                 file_in = glob.glob(
                     "%s%04i%02i01_Region_mean_timeseries_Monthly*.nc"
                     % (path_in, yr, mn)
                 )
+                # stop if more than one file founds by glob.glob
+                if len(file_in) != 0:
+                    print("incorrect number of files found, stopping")
+                    print(file_in)
+                    pdb.set_trace()
                 rootgrp_in = Dataset(file_in[0], "r", format="NETCDF4")
 
                 # time: Check origin, 1950 or 1900
                 orig_time_counter_origin = rootgrp_in.variables[
                     "time_counter"
                 ].time_origin
+
+                # find offset between 1900 and 1950
                 if orig_time_counter_origin == "1900-01-01 00:00:00":
                     calendar_time_offset = 50.0 * 360.0 * 86400.0
                 elif orig_time_counter_origin == "1950-01-01 00:00:00":
                     calendar_time_offset = 0.0
                 else:
-                    print("time_counter origin needs checking")
+                    print("Check time_counter origin")
+                    pdb.set_trace()
 
                 # PDCtrl overflows when second counter gets over 2**32, so work around.
                 if ens == "PDCtrl":
-
+                    # seconds since 1950, for the middle of the month
                     tmp_calc_time_counter = (
                         (yr - 1950.0) * 360.0 * 86400.0
                         + (mn - 1.0) * 30.0 * 86400
                         + 15.0 * 86400
                     )
+
+                    # seconds since 1950, for the start/end of the month
                     tmp_calc_time_counter_bounds = np.zeros((2))
                     tmp_calc_time_counter_bounds[0] = (
                         yr - 1950.0
@@ -387,11 +470,15 @@ def run_CEDA_regional_means():
                         )
                         pdb.set_trace()
 
+                    # Append time and time_bounds to output file
                     time_var[counter : counter + 1] = tmp_calc_time_counter
                     timebnds_var[
                         counter : counter + 1, :
                     ] = tmp_calc_time_counter_bounds
                 else:
+
+                    # if NEMO4.0.4 (NWSPPE), add model time but correct
+                    # for 1900-1950 change in origin
                     time_var[counter : counter + 1] = (
                         rootgrp_in.variables["time_counter"][:] - calendar_time_offset
                     )
@@ -410,37 +497,82 @@ def run_CEDA_regional_means():
                     (tmp_mask_id == 3) & (tmp_reg_id > 0)
                 )
 
+                # Add count, and reg_id data
                 tmpvardict["cnt"][:] = tmp_cnt[reg_ind]
                 tmpvardict["reg_id"][:] = tmp_reg_id[reg_ind]
 
                 # fill the variables with data.
                 for var in var_dict[grid_val]:
+                    # find the NEMO output nc variable name
                     tmp_orig_var_name_dict = orig_var_name_dict[var]
 
+                    # read from NEMO output file, and write to output file.
                     tmpvardict[var][counter : counter + 1, :] = rootgrp_in.variables[
                         tmp_orig_var_name_dict
                     ][:].ravel()[reg_ind]
 
+                # increment monthly counter
                 counter += 1
+                # close the input file for that month
                 rootgrp_in.close()
-
+        # After cycling through all years and months, close output file.
         rootgrp_out.close()
 
 
 def run_CEDA_monthly():
     """
-    read in the monthly mean files output from NEMO COx and recreate them for CEDA, with standardised and corrected meta data.
+    Read in the monthly mean files output from NEMO COx and recreate them for CEDA, with standardised and corrected meta data.
+
+    This is unlikely to be run outside the MO, as the raw NEMO model output
+    will not be made available.
+
+    NEMO runs in monthly cycles, so produces a separate file for each month.
+    Here we combine 12 monthly means into a single annual file (of 12 months).
+    To do this, we write an output file every January, add the dimensions,
+    variables, attributes, and then close the file. We then open this file
+    with append, to add the data every month.
+
+    This code cycles through the PDCtrl and the NWSPPE ensemble members, and through the T, U and V grids.
+
+    For each,
+        every January it
+            opens an output file,
+            adds the dimensions, variables and attributes.
+            closes the file
+        It then cycles through the years and months, and adds the
+        data to the output file.
+
+    NEMO 3.6 and NEMO 4.0.4 (PDCtrl and NWSPPE respectively) both have a
+    different time origin (1950 and 1900 respectively) so this is corrected
+    for.
+    Furthermore, NEMO 3.6 (PDCtrl) had an XIOS bug which meant the time
+    (in seconds since 1950) would overflow with values >2**32. We correct
+    for this.
+
+    There are occasional files that were not archived, and so have been
+    recreated (mostly by averaging daily mean files, see paper for details).
+    This is done externally to this program, using netcdf operators.
+    Files that have been recreated have been given an extension to the file
+    name of the raw NEMO output. To account for this, we use glob.glob with
+    the input file names.
+
+    We have provided barotropic (depth mean) current speed (DMUV). This is the
+    magnitude of the U and V velocity components (DMU and DMV). However, these
+    are on the U and V grid respectively. We therefore have to interpolate the
+    U and V components from the U and V grid, to the T grid, before calculating
+    the magnitude. Therefore, for the T grid files, we still have to load the
+    U and V files - we therefore use a temporary file name dictionary for each
+    month.
 
     Jonathan Tinker 29/03/2023
     """
-    mnmat = np.arange(1, 12 + 1)
 
     # Create the directory if missing.
-    if not os.path.exists(HCCP_output_dir):
-        os.makedirs(HCCP_output_dir)
+    if not os.path.exists(NWSPPE_output_dir):
+        os.makedirs(NWSPPE_output_dir)
 
     # cycle through the ensemble members
-    for ens in ["PDCtrl"] + HCCP_ens_mat_12:
+    for ens in ["PDCtrl"] + NWSPPE_ens_mat_12:
         print(ens, datetime.now())
 
         # input path and years for NWSPPE and PDCtrl differ.
@@ -449,13 +581,13 @@ def run_CEDA_monthly():
 
             yrmat = np.arange(2050, 2250 + 1)
             fname_ens = ens
-            path_out = HCCP_output_dir + "NWSClim/%s/annual/" % ens
+            path_out = NWSPPE_output_dir + "NWSClim/%s/annual/" % ens
         else:
-            path_in = HCCP_path_in_pattern % (ens)
+            path_in = NWSPPE_path_in_pattern % (ens)
             fname_ens = "NWSPPE_%s" % ens
 
             yrmat = np.arange(1990, 2098 + 1)
-            path_out = HCCP_output_dir + "NWSClim/NWSPPE/%s/annual/" % ens
+            path_out = NWSPPE_output_dir + "NWSClim/NWSPPE/%s/annual/" % ens
 
         # output path, create it missing.
         if not os.path.exists(path_out):
@@ -470,10 +602,18 @@ def run_CEDA_monthly():
                 # input file names
                 tmp_file_in_dict = {}
                 for grid_val in grid_list:
-                    tmp_file_in_dict[grid_val] = glob.glob(
+
+                    tmp_file_in = glob.glob(
                         "%s%04i%02i01_Monthly2D_grid_%s*.nc"
                         % (path_in, yr, mn, grid_val)
-                    )[0]
+                    )
+
+                    if len(tmp_file_in) != 0:
+                        print("incorrect number of files found, stopping")
+                        print(tmp_file_in)
+                        pdb.set_trace()
+
+                    tmp_file_in_dict[grid_val] = tmp_file_in[0]
 
                 for grid_val in grid_list:
 
@@ -612,8 +752,8 @@ def run_CEDA_monthly():
                         # Calculate the barotropic current speed
                         DMUV_T = np.sqrt(DMU_T**2 + DMV_T**2)
 
-                    rootgrp_U_in.close()
-                    rootgrp_V_in.close()
+                        rootgrp_U_in.close()
+                        rootgrp_V_in.close()
 
                     rootgrp_out = Dataset(path_out + file_out, "a", format="NETCDF4")
 
@@ -718,10 +858,54 @@ def run_CEDA_ens_climatologies(
     yrmat_2=np.arange(2079, 2098 + 1),
 ):
     """
-    Read in the CEDA reprocessed monthly mean files, and create climatological means and standard deviations,
-    for a near present day period (2000-2019) and a end of century period (2079-2098). This is repeated for all ensemble member for the NWSPPE,
-    and is produced for monthly, seasonal and annual means. The climatological means and standard deviations are in different files, and the variable names are unchanged
-    (although the processing and statisitic is recorded in the variable attributes, cell_methods)
+    Read in the CEDA reprocessed monthly mean files, and create climatological
+    means and standard deviations,for a near present day period (2000-2019)
+    and a end of century period (2079-2098). This is repeated for all
+    ensemble member for the NWSPPE,and is produced for monthly, seasonal
+    and annual means.
+
+    This may be run outside the MO, it only relies on the processed annual
+    files which are available on CEDA. Re-running it may allow the user to
+    customise the climatological periods.
+
+    We do not create climatologies for PDCtrl, only NWSPPE.
+    The climatological means and standard deviations are in
+    different files, and the variable names are unchanged (although the
+    processing and statisitic is recorded in the variable attributes,
+    cell_methods). As these files have the same structure, they are created at
+    the same time, and closed, and the reopened (with append) to add the data.
+
+    For the seasonal and annual mean climatologies, we cycle through the years,
+    and average the approprate months, by summing them up, and dividing by the
+    number of months.
+
+    When caluculating the climatological mean and standard deviations, we sum
+    up the variables for the months/seasons/years, and their square. After
+    cycling through the years of the climatological period, we divide the sum
+    by the number of years to give the climatological mean. For the
+    climatological standard deviation we take the take the difference between
+    the mean of the squares, and the square of the mean.
+
+    This code cycles through the climatological periods, NWSPPE ensemble
+    members, the monthly, annual and seaonal files, and finally through
+    the T, U and V grids.
+
+    For each,
+        If opens the mean and standard deviation file
+        adds the dimensions, variables and attributes.
+        closes the file
+
+        Average the require months for that season or year (or month)
+        cycle over the yeras of the climatology and
+            increment the sum of the variables
+            increment the sum of the square of the variables
+
+        Then it converts these sums into the climatological mean and standard
+        deviations and reopens the output files, adds the variables, and
+        updates the cell methods.
+
+    Care must be taken to average the time, but to take the min and max of the
+    time bounds.
 
     Jonathan Tinker 29/03/2023
     """
@@ -736,14 +920,14 @@ def run_CEDA_ens_climatologies(
         date_name_m_mat = [ii.lower() for ii in monmxx]
         date_name_mat = date_name_m_mat + date_name_a_s_mat
 
-        for ens in HCCP_ens_mat_12:
+        for ens in NWSPPE_ens_mat_12:
 
-            input_dir = HCCP_output_dir + "NWSClim/NWSPPE/%s/annual/" % ens
-            path_out = HCCP_output_dir + "NWSClim/NWSPPE/%s/clim/" % ens
+            input_dir = NWSPPE_output_dir + "NWSClim/NWSPPE/%s/annual/" % ens
+            path_out = NWSPPE_output_dir + "NWSClim/NWSPPE/%s/clim/" % ens
             if not os.path.exists(path_out):
                 os.makedirs(path_out)
 
-            # for date_lst,date_name in zip([ann_lst,djf_lst,mam_lst,jja_lst,son_lst],date_name_mat):
+            # cycle through monthly, annual and seasonal climatologies
             for date_lst, date_name in zip(
                 mon_lst + [ann_lst, djf_lst, mam_lst, jja_lst, son_lst], date_name_mat
             ):
@@ -760,6 +944,7 @@ def run_CEDA_ens_climatologies(
                 elif date_name.upper() in ["ANN"]:
                     tmp_nfiles = 12
 
+                # Cycle through the grids
                 for grid_val in grid_list:
 
                     output_file_pref = "NWSClim_NWSPPE_%s_clim_%s_%04i-%04i_grid%s" % (
@@ -1099,7 +1284,7 @@ def run_CEDA_ens_stats(
 
     print("start: ", datetime.now())
 
-    path_out = "%s/NWSClim/EnsStats/" % HCCP_output_dir
+    path_out = "%s/NWSClim/EnsStats/" % NWSPPE_output_dir
 
     # if the output dir is missing, create it
     if not os.path.exists(path_out):
@@ -1142,7 +1327,7 @@ def run_CEDA_ens_stats(
                 Test_mean = {}
                 Test_std = {}
 
-        # loop though date types (months, seasons, annuals)
+        # loop through date types (months, seasons, annuals)
         #   open files for present day, and future climatologies (means and std devs)
         #   sum and sum squares of the variables.
         for di, seas in enumerate(date_name_mat):
@@ -1158,8 +1343,8 @@ def run_CEDA_ens_stats(
                 datetime.now(),
                 " Loading data clim_%s_%s_grid%s" % (seas, yrmat_1_str, grid_val),
             )
-            for ei, ens in enumerate(HCCP_ens_mat_12):
-                input_dir = HCCP_output_dir + "NWSClim/NWSPPE/%s/clim/" % ens
+            for ei, ens in enumerate(NWSPPE_ens_mat_12):
+                input_dir = NWSPPE_output_dir + "NWSClim/NWSPPE/%s/clim/" % ens
 
                 # file names
                 tmpfname_clim_1 = "%sNWSClim_NWSPPE_%s_clim_%s_%s_grid%s_mean.nc" % (
@@ -1521,10 +1706,10 @@ def run_CEDA_ens_stats(
 
 def main():
 
-    run_CEDA_regional_means()
     run_CEDA_monthly()
     run_CEDA_ens_climatologies()
     run_CEDA_ens_stats()
+    run_CEDA_regional_means()
 
     pdb.set_trace()
 
