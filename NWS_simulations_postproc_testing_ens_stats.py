@@ -28,6 +28,13 @@ monmxx = [
     "m10", "m11", "m12",
 ]
 
+monstr = [
+    "Jan", "Feb", "Mar",
+    "Apr", "May", "Jun",
+    "Jul", "Aug", "Sep",
+    "Oct", "Nov", "Dec",
+]
+
 def test_ens_stats(var, grid_val,  iind, jind, seas,perlab):
     """
     Test the ensmeble statistic calculations
@@ -78,7 +85,6 @@ def test_ens_stats(var, grid_val,  iind, jind, seas,perlab):
 
         fname_ens = ens
 
-        #path = NWSPPE_output_dir + '%s/'%ens
 
         path = NWSPPE_output_dir + "NWSClim/NWSPPE/%s/annual/" % ens
 
@@ -86,12 +92,10 @@ def test_ens_stats(var, grid_val,  iind, jind, seas,perlab):
 
             fname_date = "%04i" % (yr)
 
-            file_out = "NWSClim_NWSPPE_%s_%s_grid%s.nc" % (
-                fname_ens,
-                fname_date,
-                grid_val,
+            file_out = (
+                "NWSClim_NWSPPE_%s_%s_grid%s.nc"
+                % (fname_ens,fname_date,grid_val,)
             )
-            #file_out = path +'%04i%02i%sMonthly2DGrid%s.nc'%(yr,mn,fname_ens,grid_val)
 
 
             rootgrp_in = Dataset(path + file_out, 'r', format='NETCDF4')
@@ -119,42 +123,13 @@ def test_ens_stats(var, grid_val,  iind, jind, seas,perlab):
 
         fname_ens = ens
 
-        #path = NWSPPE_output_dir + '%s/'%ens
 
         clim_path = NWSPPE_output_dir + "NWSClim/NWSPPE/%s/clim/" % ens
 
-        '''
-        # file names
-        tmpfname_clim_1 = "%sNWSClim_NWSPPE_%s_clim_%s_%s_grid%s_mean.nc" % (
-            clim_path,
-            ens,
-            seas,
-            yrmat_1_str,
-            grid_val,
-        )
-        tmpfname_clim_2 = "%sNWSClim_NWSPPE_%s_clim_%s_%s_grid%s_mean.nc" % (
-            clim_path,
-            ens,
-            seas,
-            yrmat_2_str,
-            grid_val,
-        )
-        tmpfname_clim_stdev_1 = (
-            "%sNWSClim_NWSPPE_%s_clim_%s_%s_grid%s_stddev.nc"
-            % (clim_path, ens, seas, yrmat_1_str, grid_val)
-        )
-        tmpfname_clim_stdev_2 = (
-            "%sNWSClim_NWSPPE_%s_clim_%s_%s_grid%s_stddev.nc"
-            % (clim_path, ens, seas, yrmat_2_str, grid_val)
-        )
-        '''
 
-        tmpfname_clim = "%sNWSClim_NWSPPE_%s_clim_%s_%s_grid%s_mean.nc" % (
-            clim_path,
-            ens,
-            seas,
-            perlab,
-            grid_val,
+        tmpfname_clim = (
+            "%sNWSClim_NWSPPE_%s_clim_%s_%s_grid%s_mean.nc"
+            % (clim_path,ens,seas,perlab,grid_val)
         )
         tmpfname_clim_stdev = (
             "%sNWSClim_NWSPPE_%s_clim_%s_%s_grid%s_stddev.nc"
@@ -167,6 +142,9 @@ def test_ens_stats(var, grid_val,  iind, jind, seas,perlab):
         clim_std_mat[ei] = rootgrp_in_std.variables[var][0,jind,iind].astype('double')
         rootgrp_in_mean.close()
         rootgrp_in_std.close()
+
+
+
 
 
     clim_ensmean = clim_mean_mat.mean()
@@ -192,6 +170,19 @@ def test_ens_stats(var, grid_val,  iind, jind, seas,perlab):
     rootgrp_in.close()
 
     ensstat_totvar = ensstat_intvar + ensstat_ensvar
+
+
+    print ('Tests of climatologies and ensmeble statistics for %s (%s %s)'%(var, monstr[mn-1],perlab))
+    print ('====================================')
+    print ('do the climatologies calculated from the annual files agree with the climatology files?')
+
+    for ei,ens in enumerate(NWSPPE_ens_mat_12):
+        ann_clim_mean = ann_var_mat[:,ei].mean()
+        ann_clim_std = ann_var_mat[:,ei].std()
+
+        print (ens,'climmean:',isclose(ann_clim_mean,clim_mean_mat[ei],abs_tol=1e-6 ),'climstd:',isclose(ann_clim_std,clim_std_mat[ei],abs_tol=1e-6 ))
+
+
 
     print('Do the ens stat calculated from the Ens Clim agree with the Ens Stats File?')
     print ('ensmean:',isclose(clim_ensmean,ensstat_ensmean,abs_tol=1e-6 ))
