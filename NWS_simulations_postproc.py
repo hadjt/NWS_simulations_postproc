@@ -619,7 +619,6 @@ def run_CEDA_monthly():
 
                     #  output and input file names
                     fname_date = "%04i" % (yr)
-                    mi_ind = mi
 
                     file_out = "NWSClim_%s_%s_grid%s.nc" % (
                         fname_ens,
@@ -811,15 +810,15 @@ def run_CEDA_monthly():
                             )
                             pdb.set_trace()()
 
-                        time_var[mi_ind] = tmp_calc_time_counter
-                        timebnds_var[mi_ind, :] = tmp_calc_time_counter_bounds
+                        time_var[mi] = tmp_calc_time_counter
+                        timebnds_var[mi, :] = tmp_calc_time_counter_bounds
 
                     else:
-                        time_var[mi_ind] = (
+                        time_var[mi] = (
                             rootgrp_in.variables["time_counter"][:]
                             - calendar_time_offset
                         )
-                        timebnds_var[mi_ind, :] = (
+                        timebnds_var[mi, :] = (
                             rootgrp_in.variables["time_counter_bounds"][:, :]
                             - calendar_time_offset
                         )
@@ -837,14 +836,14 @@ def run_CEDA_monthly():
                                     "Mixed_Layer_Depth_Kara_et_al_definition"
                                 )
 
-                        tmpvardict[var][mi_ind, :, :] = rootgrp_in.variables[
+                        tmpvardict[var][mi, :, :] = rootgrp_in.variables[
                             tmp_orig_var_name_dict
                         ][:]
 
                     if grid_val == "T":
                         # add SST mask, so setting 15 additional sea points to land
                         DMUV_T.mask = tmpvardict["SST"][:].mask | DMUV_T.mask
-                        tmpvardict["DMUV"][mi_ind, :, :] = DMUV_T
+                        tmpvardict["DMUV"][mi, :, :] = DMUV_T
 
                     rootgrp_in.close()
                     rootgrp_out.close()
@@ -877,7 +876,7 @@ def run_CEDA_ens_climatologies(
     and average the approprate months, by summing them up, and dividing by the
     number of months.
 
-    When caluculating the climatological mean and standard deviations, we sum
+    When calculating the climatological mean and standard deviations, we sum
     up the variables for the months/seasons/years, and their square. After
     cycling through the years of the climatological period, we divide the sum
     by the number of years to give the climatological mean. For the
@@ -1276,7 +1275,7 @@ def run_CEDA_ens_stats(
     changed, with the statistic name added to the end (the processing of the
     statistic is recorded in the variable attributes, cell_methods).
 
-    When caluculating the ensemble statistics we, cycle through the ensemble
+    When calculating the ensemble statistics we, cycle through the ensemble
     members and increment a sum the variables, and the sum of square of the
     variables, which is later converted into the various ensemble statistics.
 
