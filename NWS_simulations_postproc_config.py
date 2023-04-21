@@ -17,9 +17,3 @@ rootgrp.close()
 
 # Output data - Change to a local directory if reprocessing climatologies and ensemble statistics.
 NWSPPE_output_dir = localdir + "/"
-
-### if run at the Met Office
-PDCtrl_path_in = "/scratch/hadjt/UKCP/tmp_cray_data/UKCP18_gc30_present_Ctrl_amm7_CO6_river_clim/"
-NWSPPE_path_in_pattern = "/scratch/hadjt/HCCP_UKCP_PPE/Results/amm7_ensemble/ap977_ar095_au084/HCCP_CO9_ap977_ar095_au084_%s_02/"
-
-NWSPPE_output_dir = "/project/shelf_sea_projection/HCCP_UKCP_PPE/proc_files/CEDA_final/"
