@@ -1,41 +1,24 @@
-from netCDF4 import Dataset
 import numpy as np
 
-import NWS_simulations_postproc_config as NWS_config
+nlat = 375
+nlon = 297
 
-NWSPPE_path_in_pattern = NWS_config.NWSPPE_path_in_pattern
+lat_m_coef = {}
+lat_c_coef = {}
+lon_m_coef = {}
+lon_c_coef = {}
 
-# Standardised Lat/Lon values for output variables
-eg_file_lst = [
-    NWSPPE_path_in_pattern % ("r001i1p00000") + "/19900101_Monthly2D_grid_%s.nc" % ss
-    for ss in ["T", "U", "V"]
-]
-lon_str_lst, lat_str_lst = ["nav_lon", "nav_lon_grid_U", "nav_lon_grid_V"], [
-    "nav_lat",
-    "nav_lat_grid_U",
-    "nav_lat_grid_V",
-]
+lat_m_coef['T'],lat_c_coef['T']=0.0666699998, 40.0666700263
+lat_m_coef['U'],lat_c_coef['U']=0.0666699998, 40.0666700263
+lat_m_coef['V'],lat_c_coef['V']=0.0666699973, 40.1000069691
+lon_m_coef['T'],lon_c_coef['T'] =0.1111100001,-19.8888900075
+lon_m_coef['U'],lon_c_coef['U'] =0.1111099998,-19.8333346811
+lon_m_coef['V'],lon_c_coef['V'] =0.1111100001,-19.8888900075
 
-lonlat_dict = {}
+
 lonlat_out_nc_dict = {}
+for gi,grid_val in enumerate(["T","U","V"]):
+    lonlat_out_nc_dict['lon_' + grid_val] = np.arange(nlon)*lon_m_coef[grid_val] + lon_c_coef[grid_val]
 
-for eg_file, lon_str, lat_str, grid_val in zip(
-    eg_file_lst, lon_str_lst, lat_str_lst, ["T", "U", "V"]
-):
-
-    rootgrp = Dataset(eg_file, "r", format="NETCDF4")
-    lonlat_dict[lon_str] = rootgrp.variables[lon_str][:, :]
-    lonlat_dict[lat_str] = rootgrp.variables[lat_str][:, :]
-    rootgrp.close()
-
-    nav_lon_st = lonlat_dict[lon_str][250, :].copy()
-    nav_lat_st = lonlat_dict[lat_str][:, 50].copy()
-
-    nav_lon_ma_st = np.ma.masked_equal(lonlat_dict[lon_str].copy(), 0).mean(axis=0)
-    nav_lat_ma_st = np.ma.masked_equal(lonlat_dict[lat_str].copy(), 0).mean(axis=1)
-
-    if np.corrcoef(nav_lon_st, nav_lon_ma_st)[0, 1] < 0.99999:
-        pdb.set_trace()
-
-    lonlat_out_nc_dict["lon_" + grid_val] = nav_lon_st
-    lonlat_out_nc_dict["lat_" + grid_val] = nav_lat_st
+for gi,grid_val in enumerate(["T","U","V"]):
+    lonlat_out_nc_dict['lat_' + grid_val] = np.arange(nlat)*lat_m_coef[grid_val] + lat_c_coef[grid_val]

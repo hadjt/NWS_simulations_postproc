@@ -1,10 +1,4 @@
-
-
-
-
-
-
-
+# -*- coding: utf-8 -*-
 out_Conventions = "CF-1.8"
 
 out_institution = "Met Office Hadley Centre, Exeter, UK."
@@ -13,8 +7,7 @@ out_title = "Marine climate projections for the North West European Shelf Seas.\
 
 out_history = "Model output post processed by NWS_simulations_postproc.py: https://github.com/hadjt/NWS_simulations_postproc"
 
-out_references = "Tinker et al. 2023, A set of climate projections for the NW European Shelf Seas, in prep."
-
+out_references = "Tinker et al. 2023, 21st century marine climate projections for the NW European Shelf Seas based on a perturbed parameter ensemble, in prep."
 out_comment_monthly_mean = "These are monthly mean values calculated from every timestep, as output by NEMO shelf version %s."
 
 out_comment_regmean = "Regional mean time series are output by NEMO shelf version %s, on the Wakelin et al. (2012) region mask (see region_refererence). NEMO reads in the region mask, and every time step it averages the variable within each mask region. The regional mean is then averaged over the month, and output by NEMO. This file includes the regional mean time-series for a selection of variables (as RegAveSST, RegAveSSS etc. for the regional mean SST and SSS respectively), for each month, and each of the 14 regions. There are variables for the region id (reg_id) and the number of grid boxes within each region (cnt). The region mask included (mask, with the associated longitude and latitude variables). This methodology is described by Tinker et al. (2019; see region_methology_reference)."
@@ -26,13 +19,13 @@ out_region_notes = "The region Shelf is the combination of Southern North Sea; C
 
 out_region_refererence = "Adapted from Wakelin, S. L., Holt, J., Blackford, J., Allen, I., Butenschön, M., and Artioli, Y.: Modeling the carbon fluxes of the northwest European continental shelf: Validation and budgets, 117, C05020, https://doi.org/10.1029/2011JC007402, 2012.".encode(
     "utf8"
-)  #
+)
 
 out_region_methology_reference = "Tinker, J., Renshaw, R., Barciela, R., and Wood, R.: Regional mean time series for the Northwest European Shelf seas. In: Copernicus Marine Service Ocean State Report, Issue 3, J. Oper. Oceanogr., 12, s26-s30, https://doi.org/10.1080/1755876X.2019.1633075, 2019."
 
-out_source_PDCtrl = "Underlying GCM: HadGEM3 GC3.\nDownscaling shelf seas model: NEMO shelf version 3.6.\nPresent Day Control Simulation representing the year 2000.\nModel simulations developed and run by Dr. Jonathan Tinker"
+out_source_PDCtrl = "Underlying GCM: HadGEM3 GC3.05\nDownscaling shelf seas model: NEMO shelf version 3.6.\nPresent Day Control Simulation representing the year 2000.\nModel simulations developed and run by Dr. Jonathan Tinker. The shelf climate version of NEMO 3.6 used here is available on GitHub: https://github.com/hadjt/NEMO_3.6_CO6_shelf_climate"
 
-out_source_NWSPPE = "Underlying GCM: HadGEM3 GC3.\nDownscaling shelf seas model: NEMO shelf version 4.0.4.\nRepresentative Concentration Pathway: RCP8.5.\nModel simulations developed and run by Dr. Jonathan Tinker"
+out_source_NWSPPE = "Underlying GCM: HadGEM3 GC3.05\nDownscaling shelf seas model: NEMO shelf version 4.0.4.\nRepresentative Concentration Pathway: RCP8.5.\nModel simulations developed and run by Dr. Jonathan Tinker. The shelf climate version of NEMO 4.0.4 used here is available on GitHub: https://github.com/hadjt/NEMO_4.0.4_CO9_shelf_climate"
 
 
 out_comment_grid = 'Note that NEMO uses the Arakawa "C" grid, where the T, U and V grids are offset. Most variables are on the T grid, apart from the Eastward and Northward components of the ocean barotropic current, which are on the U and V grids respectively. We also provide the barotropic current speed on T grid, where we transform the U and V velocity components onto the T grid, before calculating their magnitude. We therefore separate the variables on the T, U and V grids into separate files. This file contains variables on the %s grid.'
