@@ -251,10 +251,6 @@ def create_ann_seas_lst(yrmat):
     """
     Create a list of the months and years that make up annual and seasonal means, for a given list of years
 
-    e.g. [['202012','2021201','202102'],['202112','2022201','202202']]
-
-    to allow averageing months into seasons or years, before averaging seasons/annual into  climatologies
-
     Jonathan Tinker 29/03/2023
     """
     ann_lst = []
@@ -452,7 +448,6 @@ def run_CEDA_regional_means():
 
                     # test work around.
                     # confirm that the time calculation matches that from NEMO, when accounting from the 2**32 overflow
-                    # only check for time bounds as they are instantaneous
                     if not ((tmp_calc_time_counter_bounds % (2**32))== ((rootgrp_in.variables['time_counter_bounds'][:,:] - calendar_time_offset)% (2**32))).all():
                         print('Calculated time bounds (instantaneous values) not offset by 2**32 - check')
                         pdb.set_trace()
@@ -469,7 +464,6 @@ def run_CEDA_regional_means():
                 tmp_mask_id =  rootgrp_in.variables['mask_id'][:].ravel()
                 #pdb.set_trace()
 
-                # Pull out the shelf region (mask_id = 2, reg_id = 1), and the wakelin regions (mask_id = 3, reg_id > 1) 
                 reg_ind =  ((tmp_mask_id == 2)  & (tmp_reg_id == 1))| ((tmp_mask_id == 3) &  (tmp_reg_id > 0))
 
                 tmpvardict['cnt'][:] = tmp_cnt[reg_ind]
@@ -639,7 +633,7 @@ def run_CEDA_monthly(file_output_freq_ann = True):
                         DMUV_T = np.ma.zeros((1, 375, 297))*np.ma.masked
 
                         # Interpolate DMU and DMV from U and V grid, to T grid.
-                        # Confirmed with Jeff Polton, NOC, UK.
+                        # Confirmed with Jeff Polton
                         DMU_T[0, 1:, 1:] = (tmp_DMU[0, 1:,    :-1] + tmp_DMU[0, 1:, 1:] )/2.
                         DMV_T[0, 1:, 1:] = (tmp_DMV[0,  :-1, 1:  ] + tmp_DMV[0, 1:, 1:] )/2.
 
@@ -725,7 +719,7 @@ def run_CEDA_ens_climatologies(skip_existing = False, Test = False, Testvar = No
     """
     Read in the CEDA reprocessed monthly mean files, and create climatological means and standard deviations, 
     for a near present day period (2000-2019) and a end of century period (2079-2098). This is repeated for all ensemble member for the NWSPPE, 
-    and is produced for monthly, seasonal and annual means. The climatological means and standard deviations are in different files, and the variable names are unchanged 
+    and is produced for monthly, seasonal and annual means. The climatologiccal means and standard deviations are in different files, and the variable names are unchanged 
     (although the processing and statisitic is recorded in the variable attributes, cell_methods)
             
     Jonathan Tinker 29/03/2023
@@ -790,11 +784,9 @@ def run_CEDA_ens_climatologies(skip_existing = False, Test = False, Testvar = No
                     time_bnd = {}
                     if Test: test_lst = []
 
-                    # e.g. for presnet day annual means,  cycling through years, 2000,2001,2002, 2003...
                     for yi,tmp_date_lst in enumerate(date_lst): # year within climatological period
 
                         # cycle through the months within period for the climatological period
-                        # e.g. for presnet day annual means, for the frrst year cycling through 200001,200002,200003,200004..
                         int_cnt = 0
                         for td,tmp_date in enumerate(tmp_date_lst): #
 
@@ -887,7 +879,7 @@ def run_CEDA_ens_climatologies(skip_existing = False, Test = False, Testvar = No
 
                             pdb.set_trace()
 
-                    # create mean and standard deviation files at the same time
+
                     for tmp_fill_fname in  [tmpfname_clim,tmpfname_clim_stdev]:
 
                         rootgrp_out = Dataset(tmp_fill_fname, 'w', format='NETCDF4_CLASSIC')
@@ -1055,7 +1047,6 @@ def run_CEDA_ens_stats( Test = False, Testvar = None,yrmat_1 = np.arange(2000,20
         # create processing and projections dictionaries
         # proc dict to increment the sum and the sum of the squares
         proc_dat = {}
-
         proj_dat = {}
         proj_dat['yrmat_1'] = yrmat_1
         proj_dat['yrmat_2'] = yrmat_2
@@ -1067,6 +1058,7 @@ def run_CEDA_ens_stats( Test = False, Testvar = None,yrmat_1 = np.arange(2000,20
             proc_dat[seas] = {}
             proj_dat[seas] = {}
             other_dat[seas] = {}
+            #for var, ncvar in zip(var_mat,ncvar_mat):
             for var in var_mat:
                 proc_dat[seas][var] = {}
                 proj_dat[seas][var] = {}
@@ -1080,7 +1072,6 @@ def run_CEDA_ens_stats( Test = False, Testvar = None,yrmat_1 = np.arange(2000,20
         #   open files for present day, and future climatologies (means and std devs)
         #   sum and sum squares of the variables.
         for di,seas in enumerate(date_name_mat):
-            # counter for ensmeble members
             proc_cnt = 0
 
             if Test:
@@ -1116,7 +1107,7 @@ def run_CEDA_ens_stats( Test = False, Testvar = None,yrmat_1 = np.arange(2000,20
                 v_name_mat = rootgrp_clim_1.variables.keys()
                 for v_name in v_name_mat:
                     if v_name in var_mat: continue
-                    #For the first ensemble member, take the value, and subsequently, increment the sum, and take the new min/max
+                    #if v_name in ncvar_mat: continue
                     if ei == 0:
                         other_dat[seas][v_name+'_pres_sum'] = var_clim_1[v_name][:].astype('double')
                         other_dat[seas][v_name+'_fut_sum'] = var_clim_2[v_name][:].astype('double')
@@ -1322,7 +1313,6 @@ def run_CEDA_ens_stats( Test = False, Testvar = None,yrmat_1 = np.arange(2000,20
 def main():
 
     run_CEDA_regional_means() #20min ##16:11 - 1634; 1734-1754
-
     run_CEDA_monthly(file_output_freq_ann = file_output_freq_ann)# 2:15 ##17min PD, 9min/NWSPPE ens mem
     run_CEDA_ens_climatologies(file_output_freq_ann = file_output_freq_ann) #52 mins
     run_CEDA_ens_stats() # 1 mins
