@@ -57,6 +57,8 @@ out_source_PDCtrl = NWS_globattrib.out_source_PDCtrl
 out_source_NWSPPE = NWS_globattrib.out_source_NWSPPE
 out_comment_grid = NWS_globattrib.out_comment_grid
 out_comment_EnsStat = NWS_globattrib.out_comment_EnsStat
+out_comment_EnsStat_diff_meth_1 = NWS_globattrib.out_comment_EnsStat_diff_meth_1
+out_comment_EnsStat_diff_meth_2 = NWS_globattrib.out_comment_EnsStat_diff_meth_2
 out_variance_separation_references = NWS_globattrib.out_variance_separation_references
 
 # Use info from NWS standardised lon lat
@@ -386,6 +388,7 @@ def run_CEDA_regional_means():
         rootgrp_out.setncattr("institution", out_institution)
         rootgrp_out.setncattr("title", out_title)
         rootgrp_out.setncattr("source", out_source)
+        rootgrp_out.setncattr("ensemble_member", ens)
 
         rootgrp_out.setncattr("region_names", out_region_names)
         rootgrp_out.setncattr("region_notes", out_region_notes)
@@ -709,6 +712,7 @@ def run_CEDA_monthly():
                         rootgrp_out.setncattr("institution", out_institution)
                         rootgrp_out.setncattr("title", out_title)
                         rootgrp_out.setncattr("source", out_source)
+                        rootgrp_out.setncattr("ensemble_member", ens)
 
                         rootgrp_out.setncattr("history", out_history)
                         rootgrp_out.setncattr("references", out_references)
@@ -1146,6 +1150,7 @@ def run_CEDA_ens_climatologies(
                         rootgrp_out.setncattr("institution", out_institution)
                         rootgrp_out.setncattr("title", out_title)
                         rootgrp_out.setncattr("source", out_source)
+                        rootgrp_out.setncattr("ensemble_member", ens)
 
                         rootgrp_out.setncattr("history", out_history)
                         rootgrp_out.setncattr("references", out_references)
@@ -1252,6 +1257,7 @@ def run_CEDA_ens_climatologies(
 def run_CEDA_ens_stats(
     yrmat_1=np.arange(2000, 2019 + 1),
     yrmat_2=np.arange(2079, 2098 + 1),
+    method = 'absolute_difference',
 ):
     """
     Read in the CEDA climatological means and standard deviations, for ensemble
@@ -1305,6 +1311,15 @@ def run_CEDA_ens_stats(
 
     """
 
+    if method not in ['removed_baseline', 'absolute_difference']:
+        pdb.set_trace()
+    else:
+
+        if method == 'absolute_difference':
+            meth = 1
+        elif method == 'removed_baseline':
+            meth = 2
+
     print("start: ", datetime.now())
 
     path_out = "%s/NWSClim/EnsStats/" % NWSPPE_output_dir
@@ -1320,7 +1335,12 @@ def run_CEDA_ens_stats(
     # Labeling output date strings for filesnames
     yrmat_1_str = "%04i-%04i" % (yrmat_1[0], yrmat_1[-1])
     yrmat_2_str = "%04i-%04i" % (yrmat_2[0], yrmat_2[-1])
-    diff_yrmat_str = "%sminus%s" % (yrmat_2_str, yrmat_1_str)
+
+    if meth == 1:
+        diff_yrmat_str = "%sminus%s" % (yrmat_2_str, yrmat_1_str)
+    elif meth == 2:
+        diff_yrmat_str = "%srelativeto%s" % (yrmat_2_str, yrmat_1_str)
+
 
     for grid_val in grid_list:
 
@@ -1667,9 +1687,14 @@ def run_CEDA_ens_stats(
                 # Add data to variables.
                 for var in var_dict[grid_val]:
                     for ens_stat in ens_stat_lst:
-                        nc_2d_var_dict[var + ens_stat][0, :, :] = proj_dat[seas][var][
-                            pername + ens_stat
-                        ][:, :]
+
+                        if (pername == 'diff') & (meth == 1):
+                            nc_2d_var_dict[var + ens_stat][0, :, :] = proj_dat[seas][var]['fut' + ens_stat][:, :] - proj_dat[seas][var]['pres' + ens_stat][:, :]
+
+                        else:
+                            nc_2d_var_dict[var + ens_stat][0, :, :] = proj_dat[seas][var][
+                                pername + ens_stat
+                            ][:, :]
 
                 # Add lat and lon.
                 lon_var = rootgrp_out.createVariable("lon", "f4", (lon_dim))
@@ -1701,7 +1726,13 @@ def run_CEDA_ens_stats(
                 )
 
                 # close files.
-                rootgrp_out.setncattr("comments", out_comment_EnsStat)
+                if pername == 'diff':
+                    if meth == 1:
+                        rootgrp_out.setncattr("comments", out_comment_EnsStat_diff_meth_1)
+                    elif meth == 2:
+                        rootgrp_out.setncattr("comments", out_comment_EnsStat_diff_meth_2)
+                else:
+                    rootgrp_out.setncattr("comments", out_comment_EnsStat)
                 rootgrp_out.setncattr("comments_grid", out_comment_grid % (grid_val))
                 rootgrp_out.close()
 
@@ -1711,7 +1742,8 @@ def main():
     run_CEDA_regional_means()
     run_CEDA_monthly()
     run_CEDA_ens_climatologies()
-    run_CEDA_ens_stats()
+    #run_CEDA_ens_stats(method = 'removed_baseline')
+    run_CEDA_ens_stats(method = 'absolute_difference')
 
     pdb.set_trace()
 
