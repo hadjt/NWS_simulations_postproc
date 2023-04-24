@@ -57,8 +57,7 @@ out_source_PDCtrl = NWS_globattrib.out_source_PDCtrl
 out_source_NWSPPE = NWS_globattrib.out_source_NWSPPE
 out_comment_grid = NWS_globattrib.out_comment_grid
 out_comment_EnsStat = NWS_globattrib.out_comment_EnsStat
-out_comment_EnsStat_diff_meth_1 = NWS_globattrib.out_comment_EnsStat_diff_meth_1
-out_comment_EnsStat_diff_meth_2 = NWS_globattrib.out_comment_EnsStat_diff_meth_2
+out_comment_EnsStat_diff = NWS_globattrib.out_comment_EnsStat_diff
 out_variance_separation_references = NWS_globattrib.out_variance_separation_references
 
 # Use info from NWS standardised lon lat
@@ -1257,8 +1256,7 @@ def run_CEDA_ens_climatologies(
 def run_CEDA_ens_stats(
     yrmat_1=np.arange(2000, 2019 + 1),
     yrmat_2=np.arange(2079, 2098 + 1),
-    method = 'absolute_difference',
-):
+    ):
     """
     Read in the CEDA climatological means and standard deviations, for ensemble
     member for the NWSPPE, for the near present day period (2000-2019) and end
@@ -1281,7 +1279,7 @@ def run_CEDA_ens_stats(
     changed, with the statistic name added to the end (the processing of the
     statistic is recorded in the variable attributes, cell_methods).
 
-    When calculating the ensemble statistics we, cycle through the ensemble
+    When calculating the ensemble statistics, we cycle through the ensemble
     members and increment a sum the variables, and the sum of square of the
     variables, which is later converted into the various ensemble statistics.
 
@@ -1292,7 +1290,13 @@ def run_CEDA_ens_stats(
 
     As well as calculating the ensemble statistics for each climatological
     period, we also calculate the ensemble statistics for the differnce between
-    the climatological period, to give the change signal.
+    the climatological period, to give the change signal. These are the
+    difference between the future and present day ensemble statistics, which
+    shows how the ensemble statistics have change. This does not give
+    information about the uncertainty associated with the projected changed, so
+    we provide an additional statistic for this projstd. To calculate this, we
+    remove the present day climatological mean, from the future climatological
+    mean and calculate the standard deviation across the ensemble member.
 
     The code first initialises dictionaries to load the data.
 
@@ -1300,7 +1304,7 @@ def run_CEDA_ens_stats(
     and then cycles through the ensembles. For each ensemble member, it loads
     the climatological mean and standard deviation for the near present day and
     end-of-century period, and also records their difference. For the first
-    ensmeble member, it notes the variables, and the square of the variables,
+    ensemble member, it notes the variables, and the square of the variables,
     for both the climatological mean and standard deviation.
 
     After all months, seasons and annual means, and ensemble members are loaded
@@ -1311,18 +1315,13 @@ def run_CEDA_ens_stats(
 
     """
 
-    if method not in ['removed_baseline', 'absolute_difference']:
-        pdb.set_trace()
-    else:
+    ens_stat_lst_diff =  ["_ensmean", "_ensvar", "_intvar", "_ensstd", "_projstd"]
 
-        if method == 'absolute_difference':
-            meth = 1
-        elif method == 'removed_baseline':
-            meth = 2
 
     print("start: ", datetime.now())
 
     path_out = "%s/NWSClim/EnsStats/" % NWSPPE_output_dir
+
 
     # if the output dir is missing, create it
     if not os.path.exists(path_out):
@@ -1335,11 +1334,7 @@ def run_CEDA_ens_stats(
     # Labeling output date strings for filesnames
     yrmat_1_str = "%04i-%04i" % (yrmat_1[0], yrmat_1[-1])
     yrmat_2_str = "%04i-%04i" % (yrmat_2[0], yrmat_2[-1])
-
-    if meth == 1:
-        diff_yrmat_str = "%sminus%s" % (yrmat_2_str, yrmat_1_str)
-    elif meth == 2:
-        diff_yrmat_str = "%srelativeto%s" % (yrmat_2_str, yrmat_1_str)
+    diff_yrmat_str = "%sminus%s" % (yrmat_2_str, yrmat_1_str)
 
 
     for grid_val in grid_list:
@@ -1596,7 +1591,10 @@ def run_CEDA_ens_stats(
                 ["pres", "fut", "diff"], [yrmat_1_str, yrmat_2_str, diff_yrmat_str]
             ):
                 print(datetime.now(), " Writing files: ", seas, perlab, grid_val)
-
+                if pername == "diff":
+                    tmp_ens_stat_lst = ens_stat_lst_diff
+                else:
+                    tmp_ens_stat_lst = ens_stat_lst
                 # output file name.
                 tmpfname_out = (
                     "%sNWSClim_NWSPPE_EnsStats_clim_%s_%s_grid%s_stats.nc"
@@ -1647,7 +1645,7 @@ def run_CEDA_ens_stats(
                 # Add statistic variables.
                 nc_2d_var_dict = {}
                 for var in var_mat:
-                    for ens_stat in ens_stat_lst:
+                    for ens_stat in tmp_ens_stat_lst:
                         nc_2d_var_dict[var + ens_stat] = rootgrp_out.createVariable(
                             var + ens_stat,
                             "f4",
@@ -1655,9 +1653,8 @@ def run_CEDA_ens_stats(
                             fill_value=1.0e20,
                             zlib=compress_variables,
                         )
-
                 for var in var_dict[grid_val]:
-                    for ens_stat in ens_stat_lst:
+                    for ens_stat in tmp_ens_stat_lst:
 
                         tmplongname = ens_stat_long_name_format_dict[ens_stat] % (
                             var.upper(),
@@ -1686,10 +1683,19 @@ def run_CEDA_ens_stats(
 
                 # Add data to variables.
                 for var in var_dict[grid_val]:
-                    for ens_stat in ens_stat_lst:
+                    for ens_stat in tmp_ens_stat_lst:
 
-                        if (pername == 'diff') & (meth == 1):
-                            nc_2d_var_dict[var + ens_stat][0, :, :] = proj_dat[seas][var]['fut' + ens_stat][:, :] - proj_dat[seas][var]['pres' + ens_stat][:, :]
+                        if (pername == "diff"):
+                            if ens_stat in ["_ensmean", "_intvar",]:
+                                nc_2d_var_dict[var + ens_stat][0, :, :] = proj_dat[seas][var][
+                                    pername + ens_stat
+                                ][:, :]
+                            elif ens_stat in ["_ensvar", "_ensstd",]:
+                                nc_2d_var_dict[var + ens_stat][0, :, :] = proj_dat[seas][var]["fut" + ens_stat][:, :] - proj_dat[seas][var]["pres" + ens_stat][:, :]
+                            elif ens_stat in ["_projstd"]:
+                                nc_2d_var_dict[var + ens_stat][0, :, :] = proj_dat[seas][var][
+                                    pername + "_ensstd"
+                                ][:, :]
 
                         else:
                             nc_2d_var_dict[var + ens_stat][0, :, :] = proj_dat[seas][var][
@@ -1726,11 +1732,8 @@ def run_CEDA_ens_stats(
                 )
 
                 # close files.
-                if pername == 'diff':
-                    if meth == 1:
-                        rootgrp_out.setncattr("comments", out_comment_EnsStat_diff_meth_1)
-                    elif meth == 2:
-                        rootgrp_out.setncattr("comments", out_comment_EnsStat_diff_meth_2)
+                if pername == "diff":
+                    rootgrp_out.setncattr("comments", out_comment_EnsStat_diff)
                 else:
                     rootgrp_out.setncattr("comments", out_comment_EnsStat)
                 rootgrp_out.setncattr("comments_grid", out_comment_grid % (grid_val))
@@ -1742,8 +1745,7 @@ def main():
     run_CEDA_regional_means()
     run_CEDA_monthly()
     run_CEDA_ens_climatologies()
-    #run_CEDA_ens_stats(method = 'removed_baseline')
-    run_CEDA_ens_stats(method = 'absolute_difference')
+    run_CEDA_ens_stats()
 
     pdb.set_trace()
 
