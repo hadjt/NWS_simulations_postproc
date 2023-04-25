@@ -36,6 +36,7 @@ standard_name_dict = NWS_dict.standard_name_dict
 unit_dict = NWS_dict.unit_dict
 orig_var_name_dict = NWS_dict.orig_var_name_dict
 ens_stat_long_name_format_dict = NWS_dict.ens_stat_long_name_format_dict
+ens_stat_diff_long_name_format_dict = NWS_dict.ens_stat_diff_long_name_format_dict
 ens_stat_cell_methods_dict = NWS_dict.ens_stat_cell_methods_dict
 ens_stat_units_format_dict = NWS_dict.ens_stat_units_format_dict
 var_dict = NWS_dict.var_dict
@@ -975,7 +976,7 @@ def run_CEDA_ens_climatologies(
                     for yi, tmp_date_lst in enumerate(date_lst):
 
                         # cycle through the months within period for the climatological period
-                        # e.g. for presnet day annual means, for the frrst year cycling through 200001,200002,200003,200004..
+                        # e.g. for present day annual means, for the frrst year cycling through 200001,200002,200003,200004..
                         int_cnt = 0
                         for td, tmp_date in enumerate(tmp_date_lst):  #
                             tmp_fname = input_dir + file_pref + tmp_date[:4] + file_suff
@@ -996,13 +997,13 @@ def run_CEDA_ens_climatologies(
                                 for tmp_key in tmp_key_mat:
                                     int_var_mat[tmp_key] = var[tmp_key][
                                         mi : mi + 1
-                                    ].astype("double")
+                                    ].astype("float128")
                                 int_cnt = +1
                             else:
                                 for tmp_key in tmp_key_mat:
                                     int_var_mat[tmp_key][:] += var[tmp_key][
                                         mi : mi + 1
-                                    ].astype("double")
+                                    ].astype("float128")
                                 int_cnt += 1
 
                             # identify time and time bound var names, and take a copy of the time bounds.
@@ -1294,7 +1295,7 @@ def run_CEDA_ens_stats(
     difference between the future and present day ensemble statistics, which
     shows how the ensemble statistics have change. This does not give
     information about the uncertainty associated with the projected changed, so
-    we provide an additional statistic for this projstd. To calculate this, we
+    we provide an additional statistic for this projensstd. To calculate this, we
     remove the present day climatological mean, from the future climatological
     mean and calculate the standard deviation across the ensemble member.
 
@@ -1308,14 +1309,14 @@ def run_CEDA_ens_stats(
     for both the climatological mean and standard deviation.
 
     After all months, seasons and annual means, and ensemble members are loaded
-    it calculates the ensemble statistic, taking care to work in double
+    it calculates the ensemble statistic, taking care to work in float128
     precision to avoid negative variances. The output files are then written out.
 
     Jonathan Tinker 29/03/2023
 
     """
 
-    ens_stat_lst_diff =  ["_ensmean", "_ensvar", "_intvar", "_ensstd", "_projstd"]
+    ens_stat_lst_diff =  ["_ensmean", "_ensvar", "_intvar", "_ensstd", "_projensmean", "_projensstd"]
 
 
     print("start: ", datetime.now())
@@ -1427,44 +1428,44 @@ def run_CEDA_ens_stats(
                     if ei == 0:
                         other_dat[seas][v_name + "_pres_sum"] = var_clim_1[v_name][
                             :
-                        ].astype("double")
+                        ].astype("float128")
                         other_dat[seas][v_name + "_fut_sum"] = var_clim_2[v_name][
                             :
-                        ].astype("double")
+                        ].astype("float128")
                         other_dat[seas][v_name + "_pres_min"] = var_clim_1[v_name][
                             :
-                        ].astype("double")
+                        ].astype("float128")
                         other_dat[seas][v_name + "_fut_min"] = var_clim_2[v_name][
                             :
-                        ].astype("double")
+                        ].astype("float128")
                         other_dat[seas][v_name + "_pres_max"] = var_clim_1[v_name][
                             :
-                        ].astype("double")
+                        ].astype("float128")
                         other_dat[seas][v_name + "_fut_max"] = var_clim_2[v_name][
                             :
-                        ].astype("double")
+                        ].astype("float128")
                     else:
                         other_dat[seas][v_name + "_pres_sum"] += var_clim_1[v_name][
                             :
-                        ].astype("double")
+                        ].astype("float128")
                         other_dat[seas][v_name + "_fut_sum"] += var_clim_2[v_name][
                             :
-                        ].astype("double")
+                        ].astype("float128")
                         other_dat[seas][v_name + "_pres_min"] = np.minimum(
                             other_dat[seas][v_name + "_pres_min"],
-                            var_clim_1[v_name][:].astype("double"),
+                            var_clim_1[v_name][:].astype("float128"),
                         )
                         other_dat[seas][v_name + "_fut_min"] = np.minimum(
                             other_dat[seas][v_name + "_fut_min"],
-                            var_clim_2[v_name][:].astype("double"),
+                            var_clim_2[v_name][:].astype("float128"),
                         )
                         other_dat[seas][v_name + "_pres_max"] = np.minimum(
                             other_dat[seas][v_name + "_pres_max"],
-                            var_clim_1[v_name][:].astype("double"),
+                            var_clim_1[v_name][:].astype("float128"),
                         )
                         other_dat[seas][v_name + "_fut_max"] = np.minimum(
                             other_dat[seas][v_name + "_fut_max"],
-                            var_clim_2[v_name][:].astype("double"),
+                            var_clim_2[v_name][:].astype("float128"),
                         )
 
                 # Variables
@@ -1475,63 +1476,63 @@ def run_CEDA_ens_stats(
                     if ei == 0:
                         proc_dat[seas][var]["pres_mean_sum"] = var_clim_1[var][
                             0, :, :
-                        ].astype("double")
+                        ].astype("float128")
                         proc_dat[seas][var]["fut_mean_sum"] = var_clim_2[var][
                             0, :, :
-                        ].astype("double")
+                        ].astype("float128")
                         proc_dat[seas][var]["diff_mean_sum"] = var_clim_2[var][
                             0, :, :
-                        ].astype("double") - var_clim_1[var][0, :, :].astype("double")
+                        ].astype("float128") - var_clim_1[var][0, :, :].astype("float128")
                         proc_dat[seas][var]["pres_mean_ss"] = (
-                            var_clim_1[var][0, :, :].astype("double")
+                            var_clim_1[var][0, :, :].astype("float128")
                         ) ** 2
                         proc_dat[seas][var]["fut_mean_ss"] = (
-                            var_clim_2[var][0, :, :].astype("double")
+                            var_clim_2[var][0, :, :].astype("float128")
                         ) ** 2
                         proc_dat[seas][var]["diff_mean_ss"] = (
-                            var_clim_2[var][0, :, :].astype("double")
-                            - var_clim_1[var][0, :, :].astype("double")
+                            var_clim_2[var][0, :, :].astype("float128")
+                            - var_clim_1[var][0, :, :].astype("float128")
                         ) ** 2
                         # we need the interannual variance of each ensemble member, so at this step need to convert from Std Dev by squaring
                         proc_dat[seas][var]["pres_var_sum"] = (
-                            var_clim_stdev_1[var][0, :, :].astype("double") ** 2
+                            var_clim_stdev_1[var][0, :, :].astype("float128") ** 2
                         )
                         proc_dat[seas][var]["fut_var_sum"] = (
-                            var_clim_stdev_2[var][0, :, :].astype("double") ** 2
+                            var_clim_stdev_2[var][0, :, :].astype("float128") ** 2
                         )
                         proc_dat[seas][var]["diff_var_sum"] = (
-                            var_clim_stdev_2[var][0, :, :].astype("double") ** 2
-                        ) - (var_clim_stdev_1[var][0, :, :].astype("double") ** 2)
+                            var_clim_stdev_2[var][0, :, :].astype("float128") ** 2
+                        ) - (var_clim_stdev_1[var][0, :, :].astype("float128") ** 2)
                     else:
                         proc_dat[seas][var]["pres_mean_sum"] += var_clim_1[var][
                             0, :, :
-                        ].astype("double")
+                        ].astype("float128")
                         proc_dat[seas][var]["fut_mean_sum"] += var_clim_2[var][
                             0, :, :
-                        ].astype("double")
+                        ].astype("float128")
                         proc_dat[seas][var]["diff_mean_sum"] += var_clim_2[var][
                             0, :, :
-                        ].astype("double") - var_clim_1[var][0, :, :].astype("double")
+                        ].astype("float128") - var_clim_1[var][0, :, :].astype("float128")
                         proc_dat[seas][var]["pres_mean_ss"] += (
-                            var_clim_1[var][0, :, :].astype("double")
+                            var_clim_1[var][0, :, :].astype("float128")
                         ) ** 2
                         proc_dat[seas][var]["fut_mean_ss"] += (
-                            var_clim_2[var][0, :, :].astype("double")
+                            var_clim_2[var][0, :, :].astype("float128")
                         ) ** 2
                         proc_dat[seas][var]["diff_mean_ss"] += (
-                            var_clim_2[var][0, :, :].astype("double")
-                            - var_clim_1[var][0, :, :].astype("double")
+                            var_clim_2[var][0, :, :].astype("float128")
+                            - var_clim_1[var][0, :, :].astype("float128")
                         ) ** 2
                         # we need the interannual variance of each ensemble member, so at this step need to convert from Std Dev by squaring
                         proc_dat[seas][var]["pres_var_sum"] += (
-                            var_clim_stdev_1[var][0, :, :].astype("double") ** 2
+                            var_clim_stdev_1[var][0, :, :].astype("float128") ** 2
                         )
                         proc_dat[seas][var]["fut_var_sum"] += (
-                            var_clim_stdev_2[var][0, :, :].astype("double") ** 2
+                            var_clim_stdev_2[var][0, :, :].astype("float128") ** 2
                         )
                         proc_dat[seas][var]["diff_var_sum"] += (
-                            var_clim_stdev_2[var][0, :, :].astype("double") ** 2
-                        ) - (var_clim_stdev_1[var][0, :, :].astype("double") ** 2)
+                            var_clim_stdev_2[var][0, :, :].astype("float128") ** 2
+                        ) - (var_clim_stdev_1[var][0, :, :].astype("float128") ** 2)
                 # increment ensemble counter
                 proc_cnt += 1
 
@@ -1557,31 +1558,44 @@ def run_CEDA_ens_stats(
             #   Calc the ens_mean, int_var, ens_var (ens_std inferred later)
             # for var, ncvar in zip(var_mat,ncvar_mat):
             for var in var_mat:
-                for pername, perlab in zip(
-                    ["pres", "fut", "diff"], [yrmat_1_str, yrmat_2_str, diff_yrmat_str]
-                ):
 
-                    # Ens_mean -
+                # Calc ensmean, ensvar, intvar and ensstd for pres and fut
+                for pername in ["pres", "fut"]:
+
+                    # ensmean
                     proj_dat[seas][var]["%s_ensmean" % pername] = (
-                        proc_dat[seas][var]["%s_mean_sum" % pername] / proc_cnt
+                        proc_dat[seas][var]["%s_mean_sum" % pername].astype("float128") / proc_cnt
                     )
 
-                    # int_var
+                    # intvar
                     #   note we have already converted the clim std into variance when we read the climatology files in.
                     proj_dat[seas][var]["%s_intvar" % pername] = (
-                        proc_dat[seas][var]["%s_var_sum" % pername] / proc_cnt
+                        proc_dat[seas][var]["%s_var_sum" % pername].astype("float128") / proc_cnt
                     )
 
-                    # ens_var
+                    # ensvar
                     proj_dat[seas][var]["%s_ensvar" % pername] = (
                         proc_dat[seas][var]["%s_mean_ss" % pername] / proc_cnt
-                        - proj_dat[seas][var]["%s_ensmean" % pername] ** 2
+                        - proj_dat[seas][var]["%s_ensmean" % pername].astype("float128") ** 2
                     )
 
-                    # ens_stddev
+                    # ensstd
                     proj_dat[seas][var]["%s_ensstd" % pername] = np.sqrt(
-                        proj_dat[seas][var]["%s_ensvar" % pername]
+                        proj_dat[seas][var]["%s_ensvar" % pername].astype("float128")
                     )
+
+                # Calc proj_ensmean, proj_ensstd for diff.
+                # The other diff stats are calculate by subtraction later.
+
+                # proj_ensmean
+                proj_dat[seas][var]["diff_projensmean"] = (
+                    proc_dat[seas][var]["diff_mean_sum"].astype("float128") / proc_cnt
+                )
+                # proj_ensstddev
+                proj_dat[seas][var]["diff_projensstd"] = np.sqrt(
+                    proc_dat[seas][var]["diff_mean_ss"].astype("float128") / proc_cnt
+                    - proj_dat[seas][var]["diff_projensmean"].astype("float128") ** 2
+                )
 
         # Write output files.
         # loop through seasons, and then pres, fut and diff.
@@ -1655,8 +1669,13 @@ def run_CEDA_ens_stats(
                         )
                 for var in var_dict[grid_val]:
                     for ens_stat in tmp_ens_stat_lst:
+                        # Use different long names for the difference stats
+                        if (pername == "diff"):
+                            ens_stat_long_name_patt = ens_stat_diff_long_name_format_dict[ens_stat]
+                        else:
+                            ens_stat_long_name_patt = ens_stat_long_name_format_dict[ens_stat]
 
-                        tmplongname = ens_stat_long_name_format_dict[ens_stat] % (
+                        tmplongname = ens_stat_long_name_patt % (
                             var.upper(),
                             perlab,
                             long_name_dict[var],
@@ -1685,22 +1704,28 @@ def run_CEDA_ens_stats(
                 for var in var_dict[grid_val]:
                     for ens_stat in tmp_ens_stat_lst:
 
-                        if (pername == "diff"):
-                            if ens_stat in ["_ensmean", "_intvar",]:
-                                nc_2d_var_dict[var + ens_stat][0, :, :] = proj_dat[seas][var][
-                                    pername + ens_stat
-                                ][:, :]
-                            elif ens_stat in ["_ensvar", "_ensstd",]:
-                                nc_2d_var_dict[var + ens_stat][0, :, :] = proj_dat[seas][var]["fut" + ens_stat][:, :] - proj_dat[seas][var]["pres" + ens_stat][:, :]
-                            elif ens_stat in ["_projstd"]:
-                                nc_2d_var_dict[var + ens_stat][0, :, :] = proj_dat[seas][var][
-                                    pername + "_ensstd"
-                                ][:, :]
-
-                        else:
+                        if (pername in ["pres", "fut"]):
                             nc_2d_var_dict[var + ens_stat][0, :, :] = proj_dat[seas][var][
                                 pername + ens_stat
                             ][:, :]
+                        elif (pername == "diff"):
+                            if ens_stat in ["_projensmean"]:
+                                nc_2d_var_dict[var + ens_stat][0, :, :] = proj_dat[seas][var][
+                                    pername + "_projensmean"
+                                ][:, :]
+                            elif ens_stat in ["_projensstd"]:
+                                nc_2d_var_dict[var + ens_stat][0, :, :] = proj_dat[seas][var][
+                                    pername + "_projensstd"
+                                ][:, :]
+                            elif ens_stat in ["_ensmean", "_ensvar", "_intvar", "_ensstd",]:
+                                nc_2d_var_dict[var + ens_stat][0, :, :] = proj_dat[seas][var]["fut" + ens_stat][:, :].astype("float128") - proj_dat[seas][var]["pres" + ens_stat][:, :].astype("float128")
+                            else:
+                                print("Diff ens stats must be _ensmean, _ensvar, _intvar, _ensstd_projensmean or _projensstd")
+                                pdb.set_trace()
+                        else:
+                            print("pername must be pres, fut or diff")
+                            pdb.set_trace()
+
 
                 # Add lat and lon.
                 lon_var = rootgrp_out.createVariable("lon", "f4", (lon_dim))
@@ -1742,9 +1767,9 @@ def run_CEDA_ens_stats(
 
 def main():
 
-    run_CEDA_regional_means()
-    run_CEDA_monthly()
-    run_CEDA_ens_climatologies()
+    #run_CEDA_regional_means()
+    #run_CEDA_monthly()
+    #run_CEDA_ens_climatologies()
     run_CEDA_ens_stats()
 
     pdb.set_trace()

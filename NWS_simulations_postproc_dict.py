@@ -89,7 +89,15 @@ ens_stat_long_name_format_dict["_ensmean"] = "Ensemble mean %s for %s: %s"
 ens_stat_long_name_format_dict["_ensvar"] = "Ensemble variability %s for %s: %s"
 ens_stat_long_name_format_dict["_intvar"] = "Interannual variability %s for %s: %s"
 ens_stat_long_name_format_dict["_ensstd"] = "Ensemble standard deviation %s for %s: %s"
-ens_stat_long_name_format_dict["_projstd"] = "Uncertainty (standard deviation) on projected %s for %s: %s"
+
+ens_stat_diff_long_name_format_dict = {}
+# ens_stat_long_name_format_dict[var + ens_stat]% (var.upper(),perlab,long_name_dict[var])
+ens_stat_diff_long_name_format_dict["_ensmean"] = "Change in ensemble mean %s for %s: %s"
+ens_stat_diff_long_name_format_dict["_ensvar"] = "Change in ensemble variability %s for %s: %s"
+ens_stat_diff_long_name_format_dict["_intvar"] = "Change in interannual variability %s for %s: %s"
+ens_stat_diff_long_name_format_dict["_ensstd"] = "Change in ensemble standard deviation %s for %s: %s"
+ens_stat_diff_long_name_format_dict["_projensmean"] = "Projected mean change in %s for %s: %s"
+ens_stat_diff_long_name_format_dict["_projensstd"] = "Uncertainty (standard deviation) on projected change in %s for %s: %s"
 
 
 
@@ -107,7 +115,10 @@ ens_stat_cell_methods_dict[
     "_ensstd"
 ] = "time: mean within years time: mean over years realization: standard_deviation"
 ens_stat_cell_methods_dict[
-    "_projstd"
+    "_projensmean"
+] = "time: mean within years time: mean over years realization: mean"
+ens_stat_cell_methods_dict[
+    "_projensstd"
 ] = "time: mean within years time: mean over years realization: standard_deviation"
 
 
@@ -119,7 +130,8 @@ ens_stat_units_format_dict["_ensmean"] = "%s"
 ens_stat_units_format_dict["_ensvar"] = "(%s)^2"
 ens_stat_units_format_dict["_intvar"] = "(%s)^2"
 ens_stat_units_format_dict["_ensstd"] = "%s"
-ens_stat_units_format_dict["_projstd"] = "%s"
+ens_stat_units_format_dict["_projensmean"] = "%s"
+ens_stat_units_format_dict["_projensstd"] = "%s"
 
 var_dict = {}
 var_dict["T"] = [

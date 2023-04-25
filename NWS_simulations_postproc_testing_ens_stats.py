@@ -155,7 +155,8 @@ def test_ens_stats_diff(var, grid_val,  iind, jind, seas):
     ensstat_ensvar = np.ma.zeros((3))
     ensstat_ensmean = np.ma.zeros((3))
     ensstat_ensstd = np.ma.zeros((3))
-    ensstat_projstd = np.ma.zeros((1))
+    ensstat_projensmean = np.ma.zeros((1))
+    ensstat_projensstd = np.ma.zeros((1))
 
     for pi,(pername, perlab) in enumerate(zip(["pres", "fut", "diff"], [yrmat_1_str, yrmat_2_str, diff_yrmat_str])):
 
@@ -172,7 +173,8 @@ def test_ens_stats_diff(var, grid_val,  iind, jind, seas):
         ensstat_ensmean[pi] = rootgrp_in.variables[var + '_ensmean'][0,jind,iind].astype('double')
         ensstat_ensstd[pi] = rootgrp_in.variables[var + '_ensstd'][0,jind,iind].astype('double')
         if pername == "diff":
-            ensstat_projstd = rootgrp_in.variables[var + '_projstd'][0,jind,iind].astype('double')
+            ensstat_projensmean = rootgrp_in.variables[var + '_projensmean'][0,jind,iind].astype('double')
+            ensstat_projensstd = rootgrp_in.variables[var + '_projensstd'][0,jind,iind].astype('double')
         rootgrp_in.close()
 
     ensstat_totvar = ensstat_intvar + ensstat_ensvar
@@ -242,12 +244,14 @@ def test_ens_stats_diff(var, grid_val,  iind, jind, seas):
     calc_intvar_rembl = np.diff(ann_var_mat.var(axis = 1),axis = 0).mean() # 20 yr var, diff between periods, mean over ens
     calc_totvar_rembl =  calc_ensvar_rembl + calc_intvar_rembl
     '''
-    calc_projstd = np.diff(ann_var_mat.mean(axis = 1),axis = 0).std() # 20 yr mean, diff between periods, std over ens
+    calc_projensmean = np.diff(ann_var_mat.mean(axis = 1),axis = 0).mean() # 20 yr mean, diff between periods, std over ens
+    calc_projensstd = np.diff(ann_var_mat.mean(axis = 1),axis = 0).std() # 20 yr mean, diff between periods, std over ens
 
     # calc diff ens stats from climatologies
     clim_mean_mat_rembl = np.diff(clim_mean_mat, axis= 0)
     clim_var_mat_rembl = np.diff(clim_std_mat**2, axis= 0)
-    clim_projstd = np.sqrt(clim_mean_mat_rembl.var() )
+    clim_projensmean = clim_mean_mat_rembl.mean()
+    clim_projensstd = np.sqrt(clim_mean_mat_rembl.var() )
 
 
 
@@ -302,7 +306,8 @@ def test_ens_stats_diff(var, grid_val,  iind, jind, seas):
     print ('ensstd:',isclose(np.diff(clim_ensstd),ensstat_ensstd[2],abs_tol=1e-6  ))
     print ('intvar:',isclose(np.diff(clim_intvar),ensstat_intvar[2],abs_tol=1e-6  ))
     print ('totvar:',isclose(np.diff(clim_totvar),ensstat_totvar[2],abs_tol=1e-6 ))
-    print ('projstd:',isclose(clim_projstd,ensstat_projstd,abs_tol=1e-6 ))
+    print ('projensmean:',isclose(clim_projensmean,ensstat_projensmean,abs_tol=1e-6 ))
+    print ('projensstd:',isclose(clim_projensstd,ensstat_projensstd,abs_tol=1e-6 ))
 
 
     print()
@@ -313,7 +318,8 @@ def test_ens_stats_diff(var, grid_val,  iind, jind, seas):
     print ('ensstd:',isclose(np.diff(calc_ensstd),ensstat_ensstd[2],abs_tol=1e-6  ))
     print ('intvar:',isclose(np.diff(calc_intvar),ensstat_intvar[2],abs_tol=1e-6  ))
     print ('totvar:',isclose(np.diff(calc_totvar),ensstat_totvar[2],abs_tol=1e-6 ))
-    print ('projstd:',isclose(calc_projstd,ensstat_projstd,abs_tol=1e-6 ))
+    print ('projensmean:',isclose(calc_projensmean,ensstat_projensmean,abs_tol=1e-6 ))
+    print ('projensstd:',isclose(calc_projensstd,ensstat_projensstd,abs_tol=1e-6 ))
 
 
     print()
@@ -324,12 +330,45 @@ def test_ens_stats_diff(var, grid_val,  iind, jind, seas):
     print ('ensstd:',isclose(np.diff(calc_ensstd),np.diff(clim_ensstd),abs_tol=1e-6  ))
     print ('intvar:',isclose(np.diff(calc_intvar),np.diff(clim_intvar),abs_tol=1e-6  ))
     print ('totvar:',isclose(np.diff(calc_totvar),np.diff(clim_totvar),abs_tol=1e-6 ))
-    print ('projstd:',isclose(calc_projstd,clim_projstd,abs_tol=1e-6 ))
+    print ('projensmean:',isclose(calc_projensmean,clim_projensmean,abs_tol=1e-6 ))
+    print ('projensstd:',isclose(calc_projensstd,clim_projensstd,abs_tol=1e-6 ))
+
+
+    print()
+    print()
+    print('Do the ens difference stat agree between the ensmean and the proj_ensmean')
+    print ('ensmean:',isclose(ensstat_projensmean,ensstat_ensmean[2],abs_tol=1e-6 ))
+    print ('ensmean exactly equal:',ensstat_projensmean==ensstat_ensmean[2])
 
 
     print()
     print()
     pdb.set_trace()
+
+
+    proc_cnt = 20
+
+
+
+
+
+    ensmean_pres, ensmean_fut = clim_mean_mat.astype('double').sum(axis = 1)/proc_cnt
+    ensmean_diff = ensmean_fut.astype('double')-ensmean_pres.astype('double')
+    proj_ensmean_diff = np.diff(clim_mean_mat.astype('double'), axis = 0).astype('double').sum()/proc_cnt
+
+
+
+    ensmean_pres, ensmean_fut = clim_mean_mat.sum(axis = 1)/proc_cnt
+    ensmean_diff = ensmean_fut-ensmean_pres
+    proj_ensmean_diff = np.diff(clim_mean_mat, axis = 0).sum()/proc_cnt
+    print (ensmean_diff==proj_ensmean_diff,ensmean_diff-proj_ensmean_diff, ensmean_diff/proj_ensmean_diff)
+
+
+
+
+
+
+
 
 
 def main():
