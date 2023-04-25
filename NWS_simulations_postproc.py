@@ -1767,9 +1767,9 @@ def run_CEDA_ens_stats(
 
 def main():
 
-    #run_CEDA_regional_means()
-    #run_CEDA_monthly()
-    #run_CEDA_ens_climatologies()
+    run_CEDA_regional_means()
+    run_CEDA_monthly()
+    run_CEDA_ens_climatologies()
     run_CEDA_ens_stats()
 
     pdb.set_trace()
